@@ -1,6 +1,8 @@
 import express from "express";
 import "dotenv/config";
 import cors from "cors";
+import mongoose from "mongoose";
+import chatRoutes from "./routes/chat.js";
 
 const app = express();
 const PORT = 8080;
@@ -8,15 +10,44 @@ const PORT = 8080;
 app.use(express.json());
 app.use(cors());
 
+app.use("/api", chatRoutes);
 
 app.listen(PORT, () => {
     console.log(`server running on ${PORT}`);
- 
+    connectDB();
 });
 
+const connectDB = async() => {
+    try {
+        await mongoose.connect(process.env.MONGO_URL);
+        console.log("Connected with Database!");
+    } catch(err) {
+        console.log("Failed to connect with Db", err);
+    }
+}
 
 
 
+
+// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+// app.post("/test", async (req, res) => {
+//   try {
+//     const message = req.body?.message;
+//     if (!message) return res.status(400).json({ error: "Missing 'message'" });
+
+//     const result = await model.generateContent(message);
+//     const text = result?.response?.text?.() || "No response generated";
+//     res.send(text);
+//   } catch (err) {
+//     console.error("Gemini API error:", err.message);
+//     res.status(500).json({ error: "Failed to generate content", details: err.message });
+//   }
+// });
+
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
@@ -37,7 +68,7 @@ app.listen(PORT, () => {
 //     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
     
 //     // Send a prompt
-//     const result = await model.generateContent("Meaning of gaurav");
+//     const result = await model.generateContent("Tell me a joke related to Computer Science");
     
 //     // Get the response text
 //     const response = result.response.text();
