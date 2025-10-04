@@ -13,7 +13,7 @@ function App() {
   const [newChat, setNewChat] = useState(true);
   const [allThreads, setAllThreads] = useState([]);
 
-  const providerValues = {
+  const providerValues = {    // passing values
     prompt, setPrompt,
     reply, setReply,
     currThreadId, setCurrThreadId,
