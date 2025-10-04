@@ -9,8 +9,8 @@
     text-align: center;
 }
 
-/* navbar */
 
+/* navbar */
 .navbar {
     width: 100%;
     display: flex;
@@ -95,14 +95,13 @@ input:focus {
     color: #b4b4b4;
 }
 
-/* dropdown css */
 
+/* dropdown css */
 .dropDown {
     position: absolute;
     top: 4rem;
     right: 4rem;
     width: 150px;
-
     background-color: #323232;
     padding: 0.3rem 0.5rem;
     border-radius: 6px;
