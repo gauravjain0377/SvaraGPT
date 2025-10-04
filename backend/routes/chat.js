@@ -18,25 +18,26 @@ async function getGeminiResponse(message) {
 }
 
 // Test route
-router.post("/test", async (req, res) => {
-    try {
-        const thread = new Thread({
-            threadId: "12345",
-            title: "Testing New Thread"
-        });
+// router.post("/test", async (req, res) => {
+//     try {
+//         const thread = new Thread({
+//             threadId: "12345",
+//             title: "Testing New Thread"
+//         });
 
-        const response = await thread.save();
-        res.send(response);
-    } catch (err) {
-        console.log(err);
-        res.status(500).json({ error: "Failed to save in DB" });
-    }
-});
+//         const response = await thread.save();
+//         res.send(response);
+//     } catch (err) {
+//         console.log(err);
+//         res.status(500).json({ error: "Failed to save in DB" });
+//     }
+// });
+
 
 // Get all threads
 router.get("/thread", async (req, res) => {
     try {
-        const threads = await Thread.find({}).sort({ updatedAt: -1 });
+        const threads = await Thread.find({}).sort({ updatedAt: -1 });  // most recent chat on the top
         res.json(threads);
     } catch (err) {
         console.log(err);
