@@ -1,17 +1,16 @@
 import "dotenv/config";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 const getGeminiAPIResponse = async (message) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: message,
+    });
 
-    // Generate content
-    const result = await model.generateContent(message);
-    const text = result?.response?.text?.();
-
+    const text = response?.text;
     return text || "No response generated";
   } catch (err) {
     console.error("Gemini API Error:", err.message);

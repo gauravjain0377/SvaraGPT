@@ -1,20 +1,21 @@
 import express from "express";
 import Thread from "../models/Thread.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 const router = express.Router();
 
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
-const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 async function getGeminiResponse(message) {
-    if (!genAI) {
+    if (!process.env.GOOGLE_API_KEY) {
         throw new Error("Gemini API key not configured");
     }
-    
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(message);
-    return result.response.text();
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: message,
+    });
+    return response.text;
 }
 
 // Test route
