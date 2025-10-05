@@ -5,7 +5,10 @@ import { useContext, useState, useEffect } from "react";
 import {ScaleLoader} from "react-spinners";
 
 function ChatWindow() {
-    const {prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat} = useContext(MyContext);
+    const {
+        prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
+        currentProject, projects, setProjects, allThreads, setAllThreads
+    } = useContext(MyContext);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -36,22 +39,45 @@ function ChatWindow() {
         setLoading(false);
     }
 
-    //Append new chat to prevChats
+    //Append new chat to prevChats and handle project assignment
     useEffect(() => {
         if(prompt && reply) {
-            setPrevChats(prevChats => (
-                [...prevChats, {
+            setPrevChats(prevChats => {
+                const newChats = [...prevChats, {
                     role: "user",
                     content: prompt
                 },{
                     role: "assistant",
                     content: reply
-                }]
-            ));
+                }];
+                
+                // If this is the first message in a new chat, add it to the appropriate location
+                if (newChats.length === 2) {
+                    const newThread = {
+                        threadId: currThreadId,
+                        title: prompt.slice(0, 50) + (prompt.length > 50 ? '...' : ''),
+                        projectId: currentProject
+                    };
+                    
+                    if (currentProject) {
+                        // Add to the current project
+                        setProjects(prev => prev.map(project => 
+                            project.id === currentProject 
+                                ? {...project, chats: [...project.chats, newThread]}
+                                : project
+                        ));
+                    } else {
+                        // Add to main threads
+                        setAllThreads(prev => [...prev, newThread]);
+                    }
+                }
+                
+                return newChats;
+            });
         }
 
         setPrompt("");
-    }, [reply]);
+    }, [reply, currThreadId, currentProject]);
 
 
     const handleProfileClick = () => {
@@ -60,39 +86,83 @@ function ChatWindow() {
 
     return (
         <div className="chatWindow">
-            <div className="navbar">
-                <span>SvaraGPT <i className="fa-solid fa-chevron-down"></i></span>
-                <div className="userIconDiv" onClick={handleProfileClick}>
-                    <span className="userIcon"><i className="fa-solid fa-user"></i></span>
+            {/* Header */}
+            <div className="header">
+                <div className="headerContent">
+                    <div className="brandSection">
+                        <div className="brandIcon">⚡</div>
+                        <span className="brandName">SvaraGPT</span>
+                        
+                    </div>
+                    <div className="headerActions">
+                        
+                        <div className="userProfile" onClick={handleProfileClick}>
+                            <div className="userAvatar">GJ</div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            
+            {/* Profile Dropdown */}
             {
                 isOpen && 
-                <div className="dropDown">
-                    <div className="dropDownItem"><i class="fa-solid fa-gear"></i> Settings</div>
-                    <div className="dropDownItem"><i class="fa-solid fa-cloud-arrow-up"></i> Upgrade plan</div>
-                    <div className="dropDownItem"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log out</div>
+                <div className="profileDropdown">
+                    <div className="dropdownItem">
+                        <i className="fa-solid fa-user"></i>
+                        <span>Gaurav Jain</span>
+                    </div>
+                    <div className="dropdownSeparator"></div>
+                    <div className="dropdownItem">
+                        <i className="fa-solid fa-gear"></i>
+                        <span>Settings</span>
+                    </div>
+                    <div className="dropdownSeparator"></div>
+                    <div className="dropdownItem">
+                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>Log out</span>
+                    </div>
                 </div>
             }
-            <Chat></Chat>
-
-            <ScaleLoader color="#fff" loading={loading}>
-            </ScaleLoader>
             
-            <div className="chatInput">
-                <div className="inputBox">
-                    <input placeholder="Ask anything"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter'? getReply() : ''}
-                    >
-                           
-                    </input>
-                    <div id="submit" onClick={getReply}><i className="fa-solid fa-paper-plane"></i></div>
+            {/* Main Content */}
+            <div className="mainContent">
+                <Chat></Chat>
+                
+                {loading && (
+                    <div className="loadingContainer">
+                        <ScaleLoader color="#ff6b35" loading={loading} />
+                    </div>
+                )}
+            </div>
+            
+            {/* Input Section */}
+            <div className="inputSection">
+                <div className="inputContainer">
+                    <div className="inputWrapper">
+                        <div className="inputActions">
+                            <button className="actionBtn" title="Attach file">
+                                <i className="fa-solid fa-paperclip"></i>
+                            </button>
+                        </div>
+                        <input 
+                            className="chatInput"
+                            placeholder="How can I help you today?"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey ? getReply() : ''}
+                        />
+                        <button 
+                            className={`sendBtn ${prompt.trim() ? 'active' : ''}`} 
+                            onClick={getReply}
+                            disabled={!prompt.trim()}
+                        >
+                            <i className="fa-solid fa-arrow-up"></i>
+                        </button>
+                    </div>
                 </div>
-                <p className="info">
-                    SvaraGPT can make mistakes. Check important info. See Cookie Preferences.
-                </p>
+                <div className="disclaimer">
+                    SvaraGPT can make mistakes. Check important info.
+                </div>
             </div>
         </div>
     )

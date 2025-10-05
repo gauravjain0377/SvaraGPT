@@ -35,43 +35,87 @@ function Chat() {
 
     }, [prevChats, reply])
 
+    const suggestedPrompts = [
+        "Help me write a Python function",
+        "Explain quantum computing",
+        "Create a marketing strategy",
+        "Debug my JavaScript code"
+    ];
+
     return (
-        <>
-            {newChat && <h1>Start a New Chat!</h1>}
-            <div className="chats">
-                {
-                    prevChats?.slice(0, -1).map((chat, idx) => 
-                        <div className={chat.role === "user"? "userDiv" : "gptDiv"} key={idx}>
-                            {
-                                chat.role === "user"? 
-                                <p className="userMessage">{chat.content}</p> : 
-                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{chat.content}</ReactMarkdown>
-                            }
+        <div className="chatContainer">
+            {newChat && prevChats.length === 0 ? (
+                <div className="welcomeScreen">
+                    <div className="welcomeContent">
+                        <div className="welcomeHeader">
+                            <div className="welcomeIcon">⚡</div>
+                            <h1 className="welcomeTitle">Hey there, Gaurav Jain</h1>
+                            <p className="welcomeSubtitle">How can I help you today?</p>
                         </div>
-                    )
-                }
-
-                {
-                    prevChats.length > 0  && (
-                        <>
-                            {
-                                latestReply === null ? (
-                                    <div className="gptDiv" key={"non-typing"} >
-                                    <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{prevChats[prevChats.length-1].content}</ReactMarkdown>
+                        
+                        <div className="suggestedPrompts">
+                            {suggestedPrompts.map((prompt, idx) => (
+                                <div key={idx} className="promptCard" onClick={() => {
+                                    // You can add functionality here to set the prompt and send it
+                                    console.log('Clicked prompt:', prompt);
+                                }}>
+                                    <span>{prompt}</span>
+                                    <i className="fa-solid fa-arrow-up-right"></i>
                                 </div>
-                                ) : (
-                                    <div className="gptDiv" key={"typing"} >
-                                     <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{latestReply}</ReactMarkdown>
+                            ))}
+                        </div>
+
+                       
+                    </div>
+                </div>
+            ) : (
+                <div className="chats">
+                    {
+                        prevChats?.slice(0, -1).map((chat, idx) => 
+                            <div className={chat.role === "user"? "messageUser" : "messageAssistant"} key={idx}>
+                                <div className="messageContent">
+                                    <div className="messageAvatar">
+                                        {chat.role === "user" ? (
+                                            <div className="userAvatar">GJ</div>
+                                        ) : (
+                                            <div className="assistantAvatar">⚡</div>
+                                        )}
+                                    </div>
+                                    <div className="messageText">
+                                        {
+                                            chat.role === "user" ? 
+                                            <p>{chat.content}</p> : 
+                                            <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{chat.content}</ReactMarkdown>
+                                        }
+                                    </div>
                                 </div>
-                                )
+                            </div>
+                        )
+                    }
 
-                            }
-                        </>
-                    )
-                }
-
-            </div>
-        </>
+                    {
+                        prevChats.length > 0  && (
+                            <div className="messageAssistant">
+                                <div className="messageContent">
+                                    <div className="messageAvatar">
+                                        <div className="assistantAvatar">⚡</div>
+                                    </div>
+                                    <div className="messageText">
+                                        {
+                                            latestReply === null ? (
+                                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{prevChats[prevChats.length-1].content}</ReactMarkdown>
+                                            ) : (
+                                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{latestReply}</ReactMarkdown>
+                                            )
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                </div>
+            )}
+        </div>
     )
 }
 

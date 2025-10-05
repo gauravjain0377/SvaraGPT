@@ -12,6 +12,20 @@ function App() {
   const [prevChats, setPrevChats] = useState([]); //stores all chats of curr threads
   const [newChat, setNewChat] = useState(true);
   const [allThreads, setAllThreads] = useState([]);
+  
+  // Project Management State
+  const [projects, setProjects] = useState([]); // [{id, name, chats: []}]
+  const [currentProject, setCurrentProject] = useState(null); // Current project context for new chats
+  const [selectedProject, setSelectedProject] = useState(null); // Selected project in UI
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameTarget, setRenameTarget] = useState(null); // {type: 'project'/'chat', id, currentName}
+  const [expandedProjects, setExpandedProjects] = useState(new Set());
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const [moveTarget, setMoveTarget] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null); // Track which three-dots menu is open
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // {type: 'chat'/'project', id, name}
 
   const providerValues = {    // passing values
     prompt, setPrompt,
@@ -19,8 +33,19 @@ function App() {
     currThreadId, setCurrThreadId,
     newChat, setNewChat,
     prevChats, setPrevChats,
-    allThreads, setAllThreads
-  }; 
+    allThreads, setAllThreads,
+    // Project management
+    projects, setProjects,
+    currentProject, setCurrentProject,
+    selectedProject, setSelectedProject,
+    showCreateProject, setShowCreateProject,
+    showRenameModal, setShowRenameModal,
+    renameTarget, setRenameTarget,
+    expandedProjects, setExpandedProjects,
+    showMoveMenu, setShowMoveMenu,
+    moveTarget, setMoveTarget,
+    activeDropdown, setActiveDropdown
+  };
 
   return (
     <div className='app'>

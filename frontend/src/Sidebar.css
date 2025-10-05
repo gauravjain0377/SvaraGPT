@@ -1,87 +1,600 @@
 .sidebar {
     background-color: #171717;
-    color: #b4b4b4;
+    color: #ececec;
     height: 100vh;
     width: 320px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    border-right: 1px solid #333;
 }
 
+/* Header */
+.sidebarHeader {
+    padding: 16px;
+    border-bottom: 1px solid #2a2a2a;
+}
 
-button {
+.newChatBtn {
+    width: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin: 10px;
-    padding: 10px;
-    border-radius: 5px;
-    background-color: transparent;
-    border: solid 0.5px rgba(255, 255, 255, 0.5);
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #ffffff !important;
+    border: 1px solid #404040;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: none;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.3);
 }
 
-.logo {
-    height: 25px;
-    width: 25px;
-    background-color: #fff;
-    border-radius: 50%;
-    object-fit: cover;
+.newChatBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+    border-color: #555555;
 }
 
-button span {
+.newChatBtn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 100%);
+}
+
+.newChatBtn i {
+    font-size: 16px;
+    color: #ffffff !important;
+}
+
+.newChatBtn span {
+    color: #ffffff !important;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Navigation Tabs */
+.navTabs {
+    display: flex;
+    padding: 8px 16px;
+    border-bottom: 1px solid #2a2a2a;
+    overflow-x: auto;
+    gap: 4px;
+}
+
+.navTab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-width: 60px;
+    font-size: 11px;
+    color: #666;
+}
+
+.navTab.active {
+    background-color: #2a2a2a;
+    color: #ececec;
+}
+
+.navTab:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #b4b4b4;
+}
+
+.navTab i {
+    font-size: 16px;
+}
+
+/* Chat History */
+.chatHistory {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+}
+
+.historySection {
+    padding: 16px 8px 8px;
+}
+
+.sectionTitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 8px 0;
+    padding: 0 8px;
+}
+
+.threadList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.threadItem {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 2px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    group: thread;
+}
+
+.threadItem:hover {
+    background-color: #2a2a2a;
+}
+
+.threadItem.active {
+    background-color: #333;
+}
+
+.threadContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.threadTitle {
+    font-size: 14px;
+    color: #ececec;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+.threadActions {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.threadItem:hover .threadActions {
+    opacity: 1;
+}
+
+.deleteBtn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #666;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.deleteBtn:hover {
+    background-color: #ff4444;
+    color: white;
+}
+
+/* Footer */
+.sidebarFooter {
+    border-top: 1px solid #2a2a2a;
+    padding: 16px;
+    margin-top: auto;
+}
+
+.upgradePrompt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.upgradePrompt:hover {
+    transform: translateY(-1px);
+}
+
+.upgradeIcon {
     font-size: 20px;
 }
 
-button:hover {
-    background-color: rgba(180, 180, 180, 0.05);
-}
-
-.history {
-    margin: 10px;
-    padding: 10px;
-    height: 100%;
-}
-
-.history li {
-    list-style-type: none;
-    cursor: pointer;
-    padding: 2px 5px;
-    margin-bottom: 0.3rem;
+.upgradeContent h4 {
+    margin: 0;
     font-size: 14px;
-    border: solid 10px transparent;
-    position: relative;
+    font-weight: 600;
+    color: white;
 }
 
-.history li:hover {
-    background-color: rgba(180, 180, 180, 0.05);
-    border-radius: 10px;
+.upgradeContent p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
 }
 
-.sign {
-    padding: 10px;
-    margin: 10px;
-    font-size: 14px;
+.footerInfo {
     text-align: center;
-    border-top: solid 0.25px rgba(255, 255, 255, 0.5);
+    padding: 8px 0;
+    margin-top: 8px;
 }
 
-.fa-trash {
+.footerInfo p {
+    margin: 0;
+    font-size: 11px;
+    color: #666;
+    padding: 4px 0;
+}
+
+/* Project Management Styles */
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0 8px;
+}
+
+.createProjectBtn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+    color: #ececec;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #404040;
+}
+
+.createProjectBtn:hover {
+    background: linear-gradient(135deg, #000000, #1a1a1a);
+    border-color: #555555;
+}
+
+.projectsList {
+    margin-top: 8px;
+}
+
+.projectItem {
+    margin-bottom: 8px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.projectHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #2a2a2a;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.projectHeader:hover {
+    background-color: #333;
+}
+
+.projectInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.expandIcon {
+    font-size: 12px;
+    color: #666;
+    transition: transform 0.2s;
+    width: 12px;
+}
+
+.projectIcon {
+    color: #4facfe;
+    font-size: 14px;
+}
+
+.projectName {
+    font-size: 14px;
+    color: #ececec;
+    font-weight: 500;
+}
+
+.chatCount {
+    font-size: 12px;
+    color: #666;
+    margin-left: 4px;
+}
+
+.projectActions {
+    display: flex;
+    gap: 4px;
     opacity: 0;
-    position: absolute;
-    right: 0;
+    transition: opacity 0.2s;
 }
 
-.history li:hover .fa-trash {
+.projectHeader:hover .projectActions {
     opacity: 1;
-    color: #fff;
 }
 
-.fa-trash:hover {
-    color: #f87171 !important;
+.actionBtn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #666;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.highlighted {
-    background-color: rgba(180, 180, 180, 0.05);
-    border-radius: 10px;
+.actionBtn:hover {
+    background-color: #404040;
+    color: #ececec;
+}
+
+.projectChats {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background-color: #1a1a1a;
+    border-top: 1px solid #333;
+}
+
+.projectChats .threadItem {
+    border-left: 3px solid #4facfe;
+    margin-left: 20px;
+    margin-right: 8px;
+    margin-bottom: 2px;
+    background-color: transparent;
+}
+
+.projectChats .threadItem:hover {
+    background-color: #2a2a2a;
+}
+
+.projectChats .threadItem.active {
+    background-color: #333;
+    border-left-color: #00f2fe;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modalContent {
+    background-color: #2a2a2a;
+    border-radius: 12px;
+    padding: 24px;
+    width: 320px;
+    border: 1px solid #404040;
+}
+
+.modalContent h3 {
+    margin: 0 0 16px 0;
+    color: #ececec;
+    font-size: 16px;
+}
+
+.modalContent input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    background-color: #1a1a1a;
+    color: #ececec;
+    font-size: 14px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+
+.modalContent input:focus {
+    outline: none;
+    border-color: #4facfe;
+}
+
+.modalActions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.modalActions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modalActions button:first-child {
+    background-color: #404040;
+    color: #ececec;
+}
+
+.modalActions button:first-child:hover {
+    background-color: #555;
+}
+
+.modalActions button:last-child {
+    background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+    color: #ececec;
+    border: 1px solid #404040;
+}
+
+.modalActions button:last-child:hover {
+    background: linear-gradient(135deg, #000000, #1a1a1a);
+    border-color: #555;
+}
+
+.projectOptions {
+    margin-bottom: 16px;
+}
+
+.projectOption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 4px;
+}
+
+.projectOption:hover {
+    background-color: #404040;
+}
+
+.projectOption i {
+    color: #4facfe;
+    font-size: 16px;
+}
+
+.projectOption span {
+    color: #ececec;
+    font-size: 14px;
+}
+
+/* Enhanced thread actions visibility */
+.threadItem .threadActions {
+    display: flex;
+    gap: 2px;
+}
+
+.threadActions .actionBtn {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+}
+
+.threadActions .deleteBtn {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+}
+
+/* Three Dots Menu */
+.threeDots {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #666;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.threeDots:hover {
+    background-color: #404040;
+    color: #ececec;
+}
+
+.dropdownMenu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #2a2a2a;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    padding: 4px 0;
+    min-width: 150px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 13px;
+    color: #ececec;
+}
+
+.menuItem:hover {
+    background-color: #404040;
+}
+
+.menuItem.delete {
+    color: #ff6b6b;
+}
+
+.menuItem.delete:hover {
+    background-color: rgba(255, 107, 107, 0.1);
+}
+
+.menuItem i {
+    width: 14px;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* Project Selector */
+.newChatWithProject {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.projectSelector {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #1a1a1a;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    color: #ececec;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.projectSelector:focus {
+    outline: none;
+    border-color: #4facfe;
+}
+
+.projectSelector option {
+    background-color: #2a2a2a;
+    color: #ececec;
+}
+
+.newChatWithProject .newChatBtn {
+    margin: 0;
 }

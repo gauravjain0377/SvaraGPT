@@ -3,6 +3,11 @@
     font-family: Roboto, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
+/* Override for buttons with specific styling */
+.newChatBtn, .newChatBtn * {
+    color: #ffffff !important;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -11,4 +16,101 @@ body {
 .app {
     background-color: #212121;
     display: flex;
+    min-height: 100vh;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .app {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100% !important;
+        height: auto !important;
+        border-right: none !important;
+        border-bottom: 1px solid #333;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 8px 16px;
+    }
+    
+    .chatWindow {
+        margin-left: 0 !important;
+    }
+    
+    .header {
+        left: 0 !important;
+    }
+    
+    .inputSection {
+        left: 0 !important;
+    }
+    
+    .mainContent {
+        padding: 0 16px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .headerContent {
+        padding: 0 16px !important;
+    }
+    
+    .brandSection {
+        gap: 8px !important;
+    }
+    
+    .modelSelector {
+        display: none !important;
+    }
+    
+    .welcomeTitle {
+        font-size: 24px !important;
+    }
+    
+    .welcomeSubtitle {
+        font-size: 16px !important;
+    }
+    
+    .suggestedPrompts {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .capabilities {
+        gap: 16px !important;
+    }
+    
+    .inputContainer {
+        margin: 0 8px !important;
+    }
+    
+    .messageContent {
+        gap: 8px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .headerActions {
+        gap: 8px !important;
+    }
+    
+    .upgradeBtn {
+        padding: 6px 12px !important;
+        font-size: 12px !important;
+    }
+    
+    .userAvatar {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+    }
+    
+    .welcomeContent {
+        padding: 0 16px !important;
+    }
+    
+    .chatInput {
+        font-size: 14px !important;
+    }
 }
