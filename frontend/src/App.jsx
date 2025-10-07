@@ -44,7 +44,9 @@ function App() {
     expandedProjects, setExpandedProjects,
     showMoveMenu, setShowMoveMenu,
     moveTarget, setMoveTarget,
-    activeDropdown, setActiveDropdown
+    activeDropdown, setActiveDropdown,
+    showDeleteConfirm, setShowDeleteConfirm,
+    deleteTarget, setDeleteTarget
   };
 
   return (

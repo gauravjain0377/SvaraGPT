@@ -283,7 +283,6 @@
     align-items: center;
     padding: 8px 12px;
     background-color: #2a2a2a;
-    cursor: pointer;
     transition: background-color 0.2s;
 }
 
@@ -296,6 +295,7 @@
     align-items: center;
     gap: 8px;
     flex: 1;
+    cursor: pointer;
 }
 
 .expandIcon {
@@ -325,12 +325,6 @@
 .projectActions {
     display: flex;
     gap: 4px;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.projectHeader:hover .projectActions {
-    opacity: 1;
 }
 
 .actionBtn {
@@ -389,20 +383,31 @@
     align-items: center;
     justify-content: center;
     z-index: 2000;
+    backdrop-filter: blur(4px);
 }
 
 .modalContent {
     background-color: #2a2a2a;
     border-radius: 12px;
     padding: 24px;
-    width: 320px;
+    min-width: 320px;
+    max-width: 400px;
     border: 1px solid #404040;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .modalContent h3 {
-    margin: 0 0 16px 0;
+    margin: 0 0 12px 0;
     color: #ececec;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modalContent p {
+    margin: 0 0 20px 0;
+    color: #b4b4b4;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .modalContent input {
@@ -413,7 +418,7 @@
     background-color: #1a1a1a;
     color: #ececec;
     font-size: 14px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     box-sizing: border-box;
 }
 
@@ -424,17 +429,19 @@
 
 .modalActions {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     justify-content: flex-end;
 }
 
 .modalActions button {
-    padding: 8px 16px;
+    padding: 10px 20px;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    min-width: 80px;
 }
 
 .modalActions button:first-child {
@@ -447,18 +454,33 @@
 }
 
 .modalActions button:last-child {
-    background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
-    color: #ececec;
-    border: 1px solid #404040;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: #fff;
+    font-weight: 600;
 }
 
 .modalActions button:last-child:hover {
-    background: linear-gradient(135deg, #000000, #1a1a1a);
-    border-color: #555;
+    background: linear-gradient(135deg, #3a8fd9, #00d4e6);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+}
+
+.modalActions button.deleteBtn {
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: #fff;
+    font-weight: 600;
+}
+
+.modalActions button.deleteBtn:hover {
+    background: linear-gradient(135deg, #ff6b6b, #ff0000);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
 }
 
 .projectOptions {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .projectOption {
@@ -527,26 +549,27 @@
 
 .dropdownMenu {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     right: 0;
     background-color: #2a2a2a;
     border: 1px solid #404040;
     border-radius: 8px;
-    padding: 4px 0;
-    min-width: 150px;
+    padding: 6px 0;
+    min-width: 180px;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .menuItem {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 10px;
+    padding: 10px 14px;
     cursor: pointer;
     transition: background-color 0.2s;
     font-size: 13px;
     color: #ececec;
+    white-space: nowrap;
 }
 
 .menuItem:hover {
@@ -558,12 +581,12 @@
 }
 
 .menuItem.delete:hover {
-    background-color: rgba(255, 107, 107, 0.1);
+    background-color: rgba(255, 107, 107, 0.15);
 }
 
 .menuItem i {
-    width: 14px;
-    font-size: 12px;
+    width: 16px;
+    font-size: 13px;
     text-align: center;
 }
 

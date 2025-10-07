@@ -49,7 +49,7 @@ function Chat() {
                     <div className="welcomeContent">
                         <div className="welcomeHeader">
                             <div className="welcomeIcon">⚡</div>
-                            <h1 className="welcomeTitle">Hey there, Gaurav Jain</h1>
+                            <h1 className="welcomeTitle">SvaraGPT</h1>
                             <p className="welcomeSubtitle">How can I help you today?</p>
                         </div>
                         

@@ -111,6 +111,7 @@
     padding: 20px;
     padding-bottom: 120px;
     overflow-y: auto;
+    background: transparent;
 }
 
 .messageUser,

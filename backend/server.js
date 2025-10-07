@@ -3,6 +3,7 @@ import "dotenv/config";
 import cors from "cors";
 import mongoose from "mongoose";
 import chatRoutes from "./routes/chat.js";
+import projectRoutes from "./routes/project.js";
 
 const app = express();
 const PORT = 8080;
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/api", chatRoutes);
+app.use("/api", projectRoutes);
 
 app.listen(PORT, () => {
     console.log(`server running on ${PORT}`);
@@ -19,7 +21,9 @@ app.listen(PORT, () => {
 
 const connectDB = async() => {
     try {
-        await mongoose.connect(process.env.MONGO_URL);
+        await mongoose.connect(process.env.MONGO_URL, {
+            dbName: process.env.MONGO_DB_NAME || "SvaraGPT_Database"
+        });
         console.log("Connected with Database!");
     } catch(err) {
         console.log("Failed to connect with Db", err);

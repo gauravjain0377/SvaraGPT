@@ -64,6 +64,26 @@ router.get("/thread/:threadId", async (req, res) => {
     }
 });
 
+// Rename/update thread title
+router.put("/thread/:threadId", async (req, res) => {
+    const { threadId } = req.params;
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ error: "Missing title" });
+
+    try {
+        const updated = await Thread.findOneAndUpdate(
+            { threadId },
+            { title, updatedAt: new Date() },
+            { new: true }
+        );
+        if (!updated) return res.status(404).json({ error: "Thread not found" });
+        res.json(updated);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: "Failed to rename thread" });
+    }
+});
+
 // Delete thread
 router.delete("/thread/:threadId", async (req, res) => {
     const { threadId } = req.params;

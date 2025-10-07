@@ -66,6 +66,12 @@ function ChatWindow() {
                                 ? {...project, chats: [...project.chats, newThread]}
                                 : project
                         ));
+                        // Persist to backend project
+                        fetch(`http://localhost:8080/api/projects/${currentProject}/chats`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ threadId: newThread.threadId, title: newThread.title })
+                        }).catch(err => console.log(err));
                     } else {
                         // Add to main threads
                         setAllThreads(prev => [...prev, newThread]);
