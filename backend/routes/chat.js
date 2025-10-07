@@ -1,21 +1,28 @@
 import express from "express";
 import Thread from "../models/Thread.js";
 import { GoogleGenAI } from "@google/genai";
+import getGeminiResponse from "../utils/gemini.js";
+import getGitHubModelsResponse from "../utils/githubModels.js";
 
 const router = express.Router();
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
-async function getGeminiResponse(message) {
-    if (!process.env.GOOGLE_API_KEY) {
-        throw new Error("Gemini API key not configured");
-    }
+// Race Gemini and GitHub Models; return first successful text
+async function getFastestResponse(message) {
+    const attempts = [
+        getGeminiResponse(message).then(text => ({ provider: "gemini", text })).catch(err => { throw { provider: "gemini", err }; }),
+        getGitHubModelsResponse(message).then(text => ({ provider: "github_models", text })).catch(err => { throw { provider: "github_models", err }; })
+    ];
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: message,
-    });
-    return response.text;
+    try {
+        const winner = await Promise.any(attempts);
+        return winner.text;
+    } catch (aggregateError) {
+        // If both failed, surface a combined message
+        const details = aggregateError?.errors?.map(e => `${e.provider}: ${e.err?.message || e}`).join(" | ") || String(aggregateError);
+        throw new Error(`All providers failed: ${details}`);
+    }
 }
 
 // Test route
@@ -97,7 +104,7 @@ router.delete("/thread/:threadId", async (req, res) => {
 
         res.status(200).json({ success: "Thread deleted successfully" });
     } catch (err) {
-        console.log(err);
+        console.error("Error deleting thread:", err);
         res.status(500).json({ error: "Failed to delete thread" });
     }
 });
@@ -124,7 +131,9 @@ router.post("/chat", async (req, res) => {
             thread.messages.push({ role: "user", content: message });
         }
 
-        const assistantReply = await getGeminiResponse(message);
+        console.log(" Fetching AI response for message:", message);
+        const assistantReply = await getFastestResponse(message);
+        console.log(" AI response received:", assistantReply.substring(0, 100) + "...");
 
         thread.messages.push({ role: "assistant", content: assistantReply });
         thread.updatedAt = new Date();
@@ -132,8 +141,9 @@ router.post("/chat", async (req, res) => {
         await thread.save();
         res.json({ reply: assistantReply });
     } catch (err) {
-        console.log(err);
-        res.status(500).json({ error: "Something went wrong" });
+        console.error("Chat endpoint error:", err.message);
+        console.error("Full error:", err);
+        res.status(500).json({ error: "Failed to generate response", details: err.message });
     }
 });
 

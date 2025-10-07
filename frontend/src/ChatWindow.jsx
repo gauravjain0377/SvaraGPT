@@ -7,7 +7,7 @@ import {ScaleLoader} from "react-spinners";
 function ChatWindow() {
     const {
         prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
-        currentProject, projects, setProjects, allThreads, setAllThreads
+        currentProject, projects, setProjects, allThreads, setAllThreads, prevChats
     } = useContext(MyContext);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
@@ -77,16 +77,14 @@ function ChatWindow() {
             });
 
             // For consistency, ensure sidebar entry title is set (if backend might set different)
-            if (prevChats.length === 0) {
-                if (currentProject) {
-                    setProjects(prev => prev.map(project =>
-                        project.id === currentProject
-                            ? { ...project, chats: project.chats.map(c => c.threadId === newThread.threadId ? { ...c, title: newThread.title } : c) }
-                            : project
-                    ));
-                } else {
-                    setAllThreads(prev => prev.map(t => t.threadId === newThread.threadId ? { ...t, title: newThread.title } : t));
-                }
+            if (currentProject) {
+                setProjects(prev => prev.map(project =>
+                    project.id === currentProject
+                        ? { ...project, chats: project.chats.map(c => c.threadId === newThread.threadId ? { ...c, title: newThread.title } : c) }
+                        : project
+                ));
+            } else {
+                setAllThreads(prev => prev.map(t => t.threadId === newThread.threadId ? { ...t, title: newThread.title } : t));
             }
         } catch (err) {
             console.log(err);
