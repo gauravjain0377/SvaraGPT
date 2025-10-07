@@ -54,7 +54,17 @@ function Sidebar() {
         .map((thread) => ({ threadId: thread.threadId, title: thread.title }))
         .filter((thread) => !threadsInProjects.has(thread.threadId));
 
-      setAllThreads(filteredData);
+      // Dedupe by threadId (and preserve order from backend)
+      const seen = new Set();
+      const unique = [];
+      for (const t of filteredData) {
+        if (!seen.has(t.threadId)) {
+          seen.add(t.threadId);
+          unique.push(t);
+        }
+      }
+
+      setAllThreads(unique);
     } catch (err) {
       console.log(err);
     }
@@ -395,9 +405,9 @@ function Sidebar() {
               <h3 className="sectionTitle">Recent Chats</h3>
             </div>
             <ul className="threadList">
-              {allThreads?.map((thread, idx) => (
+              {allThreads?.map((thread) => (
                 <li
-                  key={idx}
+                  key={thread.threadId}
                   className={`threadItem ${
                     thread.threadId === currThreadId ? "active" : ""
                   }`}

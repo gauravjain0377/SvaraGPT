@@ -13,77 +13,99 @@ function ChatWindow() {
     const [isOpen, setIsOpen] = useState(false);
 
     const getReply = async () => {
+        if(!prompt.trim()) return;
         setLoading(true);
         setNewChat(false);
 
-        console.log("message ", prompt, " threadId ", currThreadId);
+        // 1) Optimistically render user's message immediately
+        setPrevChats(prev => ([
+            ...prev,
+            { role: "user", content: prompt },
+            { role: "assistant", content: "", isLoading: true }
+        ]));
+
+        // 2) If this is the first message in a new chat, reflect it in the sidebar instantly
+        const newThread = {
+            threadId: currThreadId,
+            title: prompt.slice(0, 50) + (prompt.length > 50 ? '...' : ''),
+            projectId: currentProject
+        };
+        if (prevChats.length === 0) {
+            if (currentProject) {
+                setProjects(prev => prev.map(project =>
+                    project.id === currentProject
+                        ? { ...project, chats: project.chats.some(c => c.threadId === newThread.threadId) ? project.chats : [...project.chats, newThread] }
+                        : project
+                ));
+                // Persist to backend project (fire-and-forget)
+                fetch(`http://localhost:8080/api/projects/${currentProject}/chats`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ threadId: newThread.threadId, title: newThread.title })
+                }).catch(err => console.log(err));
+            } else {
+                setAllThreads(prev => prev.some(t => t.threadId === newThread.threadId) ? prev : [...prev, newThread]);
+            }
+        }
+
+        // 3) Send to backend
         const options = {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message: prompt,
-                threadId: currThreadId
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: prompt, threadId: currThreadId })
         };
+
+        const currentPrompt = prompt; // capture
+        setPrompt("");
 
         try {
             const response = await fetch("http://localhost:8080/api/chat", options);
             const res = await response.json();
-            console.log(res);
             setReply(res.reply);
-        } catch(err) {
+
+            // 4) Replace the temporary loader message with the real reply
+            setPrevChats(prev => {
+                const updated = [...prev];
+                // Find last assistant placeholder
+                for (let i = updated.length - 1; i >= 0; i--) {
+                    if (updated[i].role === "assistant" && updated[i].isLoading) {
+                        updated[i] = { role: "assistant", content: res.reply };
+                        break;
+                    }
+                }
+                return updated;
+            });
+
+            // For consistency, ensure sidebar entry title is set (if backend might set different)
+            if (prevChats.length === 0) {
+                if (currentProject) {
+                    setProjects(prev => prev.map(project =>
+                        project.id === currentProject
+                            ? { ...project, chats: project.chats.map(c => c.threadId === newThread.threadId ? { ...c, title: newThread.title } : c) }
+                            : project
+                    ));
+                } else {
+                    setAllThreads(prev => prev.map(t => t.threadId === newThread.threadId ? { ...t, title: newThread.title } : t));
+                }
+            }
+        } catch (err) {
             console.log(err);
+            // Replace loader with an error message
+            setPrevChats(prev => {
+                const updated = [...prev];
+                for (let i = updated.length - 1; i >= 0; i--) {
+                    if (updated[i].role === "assistant" && updated[i].isLoading) {
+                        updated[i] = { role: "assistant", content: "Sorry, something went wrong. Please try again." };
+                        break;
+                    }
+                }
+                return updated;
+            });
         }
         setLoading(false);
     }
 
-    //Append new chat to prevChats and handle project assignment
-    useEffect(() => {
-        if(prompt && reply) {
-            setPrevChats(prevChats => {
-                const newChats = [...prevChats, {
-                    role: "user",
-                    content: prompt
-                },{
-                    role: "assistant",
-                    content: reply
-                }];
-                
-                // If this is the first message in a new chat, add it to the appropriate location
-                if (newChats.length === 2) {
-                    const newThread = {
-                        threadId: currThreadId,
-                        title: prompt.slice(0, 50) + (prompt.length > 50 ? '...' : ''),
-                        projectId: currentProject
-                    };
-                    
-                    if (currentProject) {
-                        // Add to the current project
-                        setProjects(prev => prev.map(project => 
-                            project.id === currentProject 
-                                ? {...project, chats: [...project.chats, newThread]}
-                                : project
-                        ));
-                        // Persist to backend project
-                        fetch(`http://localhost:8080/api/projects/${currentProject}/chats`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ threadId: newThread.threadId, title: newThread.title })
-                        }).catch(err => console.log(err));
-                    } else {
-                        // Add to main threads
-                        setAllThreads(prev => [...prev, newThread]);
-                    }
-                }
-                
-                return newChats;
-            });
-        }
-
-        setPrompt("");
-    }, [reply, currThreadId, currentProject]);
+    // Remove previous append-on-reply logic to avoid duplicates; getReply now handles UI updates
 
 
     const handleProfileClick = () => {
@@ -133,12 +155,6 @@ function ChatWindow() {
             {/* Main Content */}
             <div className="mainContent">
                 <Chat></Chat>
-                
-                {loading && (
-                    <div className="loadingContainer">
-                        <ScaleLoader color="#ff6b35" loading={loading} />
-                    </div>
-                )}
             </div>
             
             {/* Input Section */}

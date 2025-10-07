@@ -21,7 +21,7 @@ function Chat() {
 
         if(!prevChats?.length) return;
 
-        const content = reply.split(" "); //individual words
+        const content = reply.split(" "); // individual words for simple typewriter
 
         let idx = 0;
         const interval = setInterval(() => {
@@ -70,49 +70,41 @@ function Chat() {
                 </div>
             ) : (
                 <div className="chats">
-                    {
-                        prevChats?.slice(0, -1).map((chat, idx) => 
-                            <div className={chat.role === "user"? "messageUser" : "messageAssistant"} key={idx}>
+                    {prevChats?.map((chat, idx) => {
+                        const isUser = chat.role === "user";
+                        const isAssistant = chat.role === "assistant";
+                        const isLast = idx === prevChats.length - 1;
+                        const showStreaming = isAssistant && isLast && latestReply !== null && !chat.isLoading;
+                        return (
+                            <div className={isUser ? "messageUser" : "messageAssistant"} key={idx}>
                                 <div className="messageContent">
                                     <div className="messageAvatar">
-                                        {chat.role === "user" ? (
+                                        {isUser ? (
                                             <div className="userAvatar">GJ</div>
                                         ) : (
                                             <div className="assistantAvatar">⚡</div>
                                         )}
                                     </div>
                                     <div className="messageText">
-                                        {
-                                            chat.role === "user" ? 
-                                            <p>{chat.content}</p> : 
+                                        {isUser && <p>{chat.content}</p>}
+                                        {isAssistant && chat.isLoading && (
+                                            <div className="typingDots" aria-label="Assistant is typing">
+                                                <span className="dot"></span>
+                                                <span className="dot"></span>
+                                                <span className="dot"></span>
+                                            </div>
+                                        )}
+                                        {isAssistant && !chat.isLoading && !showStreaming && (
                                             <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{chat.content}</ReactMarkdown>
-                                        }
+                                        )}
+                                        {isAssistant && showStreaming && (
+                                            <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{latestReply}</ReactMarkdown>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        )
-                    }
-
-                    {
-                        prevChats.length > 0  && (
-                            <div className="messageAssistant">
-                                <div className="messageContent">
-                                    <div className="messageAvatar">
-                                        <div className="assistantAvatar">⚡</div>
-                                    </div>
-                                    <div className="messageText">
-                                        {
-                                            latestReply === null ? (
-                                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{prevChats[prevChats.length-1].content}</ReactMarkdown>
-                                            ) : (
-                                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{latestReply}</ReactMarkdown>
-                                            )
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    }
+                        );
+                    })}
                 </div>
             )}
         </div>
