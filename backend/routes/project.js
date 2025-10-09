@@ -395,9 +395,10 @@ router.get("/projects/chats/search", async (req, res) => {
         }
         
         const searchQuery = projectId 
-            ? { _id: projectId, isActive: true }
+            ? { id: projectId, isActive: true }
             : { isActive: true };
         
+        // First, find projects with matching names or chat titles
         const projects = await Project.find({
             ...searchQuery,
             $or: [
@@ -406,19 +407,31 @@ router.get("/projects/chats/search", async (req, res) => {
             ]
         });
         
+        // Then, search for threads with matching content
+        const threads = await Thread.find({
+            $text: { $search: query }
+        });
+        
+        const threadIds = threads.map(thread => thread.threadId);
+        
         const results = [];
         
+        // Add results from project search
         projects.forEach(project => {
             project.chats.forEach(chat => {
-                if (chat.title.toLowerCase().includes(query.toLowerCase())) {
-                    results.push({
-                        projectId: project.id,
-                        projectName: project.name,
-                        threadId: chat.threadId,
-                        title: chat.title,
-                        isShared: chat.isShared,
-                        lastModified: chat.lastModified
-                    });
+                if (chat.title.toLowerCase().includes(query.toLowerCase()) || 
+                    threadIds.includes(chat.threadId)) {
+                    // Check if this result is already in the array
+                    if (!results.some(r => r.threadId === chat.threadId)) {
+                        results.push({
+                            projectId: project.id,
+                            projectName: project.name,
+                            threadId: chat.threadId,
+                            title: chat.title,
+                            isShared: chat.isShared,
+                            lastModified: chat.lastModified
+                        });
+                    }
                 }
             });
         });

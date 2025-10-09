@@ -107,10 +107,9 @@ const ThreadSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-ThreadSchema.index({ threadId: 1 });
+// Note: Not creating duplicate indexes for fields that already have index: true or unique: true
 ThreadSchema.index({ 'projectIds': 1 });
 ThreadSchema.index({ isArchived: 1, isPinned: -1, lastMessageAt: -1 });
-ThreadSchema.index({ title: 'text', 'messages.content': 'text' }, { weights: { title: 3, 'messages.content': 1 } });
 
 // Pre-save hook to update timestamps and metadata
 ThreadSchema.pre('save', function(next) {
@@ -158,7 +157,7 @@ ThreadSchema.virtual('messageCount').get(function() {
     return this.messages.length;
 });
 
-// Text search index
+// Text search index - This is the only text index we should have
 ThreadSchema.index({
     title: 'text',
     'messages.content': 'text'

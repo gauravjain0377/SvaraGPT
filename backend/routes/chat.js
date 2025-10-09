@@ -111,31 +111,47 @@ router.delete("/thread/:threadId", async (req, res) => {
 
 // Chat endpoint
 router.post("/chat", async (req, res) => {
-    const { threadId, message } = req.body;
+    const { threadId, message, projectId } = req.body;
 
     if (!threadId || !message) {
         return res.status(400).json({ error: "Missing required fields" });
     }
 
     try {
-        let thread = await Thread.findOne({ threadId });
+        // Use findOneAndUpdate with upsert to prevent race conditions
+        // This will either find an existing thread or create a new one atomically
+        const thread = await Thread.findOneAndUpdate(
+            { threadId },
+            { 
+                $setOnInsert: {
+                    threadId,
+                    title: message.substring(0, 100), // Limit title length
+                    createdAt: new Date()
+                },
+                $set: {
+                    updatedAt: new Date()
+                },
+                $push: {
+                    messages: { role: "user", content: message }
+                }
+            },
+            { 
+                new: true, // Return the updated document
+                upsert: true, // Create if it doesn't exist
+                runValidators: true
+            }
+        );
 
-        if (!thread) {
-            // Create a new thread in DB
-            thread = new Thread({
-                threadId,
-                title: message,
-                messages: [{ role: "user", content: message }]
-            });
-        } else {
-            thread.messages.push({ role: "user", content: message });
+        // If projectId is provided, ensure thread is associated with project
+        if (projectId && !thread.projectIds.includes(projectId)) {
+            thread.projectIds.push(projectId);
         }
-
        
         const assistantReply = await getFastestResponse(message);
 
+        // Update the thread with the assistant's reply
         thread.messages.push({ role: "assistant", content: assistantReply });
-        thread.updatedAt = new Date();
+        thread.lastMessageAt = new Date();
 
         await thread.save();
         res.json({ reply: assistantReply });
