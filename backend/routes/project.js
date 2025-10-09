@@ -161,7 +161,7 @@ router.post("/projects/:id/chats", async (req, res) => {
         // Check if chat already exists in any project
         const existingChat = await Project.findOne({
             "chats.threadId": threadId,
-            _id: { $ne: id }
+            id: { $ne: id }
         });
 
         if (existingChat && !isShared) {
@@ -172,7 +172,7 @@ router.post("/projects/:id/chats", async (req, res) => {
 
         // Check if chat exists in this project
         const existingInThisProject = await Project.findOne({
-            _id: id,
+            id: id,
             "chats.threadId": threadId
         });
 
@@ -181,7 +181,7 @@ router.post("/projects/:id/chats", async (req, res) => {
         if (existingInThisProject) {
             // Update existing chat
             updated = await Project.findOneAndUpdate(
-                { _id: id, "chats.threadId": threadId },
+                { id: id, "chats.threadId": threadId },
                 { 
                     $set: { 
                         "chats.$": { 
@@ -199,7 +199,7 @@ router.post("/projects/:id/chats", async (req, res) => {
         } else {
             // Add new chat
             updated = await Project.findOneAndUpdate(
-                { _id: id },
+                { id: id },
                 { 
                     $push: { 
                         chats: { 
@@ -261,7 +261,7 @@ router.post("/projects/move-chat", async (req, res) => {
         
         // Add chat to target project
         const updatedTarget = await Project.findOneAndUpdate(
-            { _id: targetProjectId },
+            { id: targetProjectId },
             { 
                 $push: { 
                     chats: { 
@@ -279,7 +279,7 @@ router.post("/projects/move-chat", async (req, res) => {
         // If not making a copy, remove from source project
         if (!makeCopy) {
             await Project.findOneAndUpdate(
-                { _id: sourceProjectId },
+                { id: sourceProjectId },
                 { 
                     $pull: { chats: { threadId } },
                     $set: { updatedAt: new Date() }
@@ -333,7 +333,7 @@ router.delete("/projects/:id/chats/:threadId", async (req, res) => {
         } else {
             // Remove chat from specific project only
             await Project.findOneAndUpdate(
-                { _id: id },
+                { id: id },
                 { 
                     $pull: { chats: { threadId } },
                     $set: { updatedAt: new Date() }
@@ -369,7 +369,7 @@ router.put("/projects/:id/chats/:threadId", async (req, res) => {
         if (isShared !== undefined) update["chats.$.isShared"] = isShared;
         
         const updated = await Project.findOneAndUpdate(
-            { _id: id, "chats.threadId": threadId },
+            { id: id, "chats.threadId": threadId },
             { $set: update },
             { new: true }
         );

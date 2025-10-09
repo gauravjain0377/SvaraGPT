@@ -24,8 +24,8 @@ const ThreadSchema = new mongoose.Schema({
     threadId: {
         type: String,
         required: true,
-        unique: true,
-        index: true
+        unique: true
+        // Removed duplicate index: true since unique already creates an index
     },
     title: {
         type: String,
@@ -41,8 +41,8 @@ const ThreadSchema = new mongoose.Schema({
     },
     messages: [MessageSchema],
     projectIds: [{
-        type: String,
-        index: true
+        type: String
+        // Removed duplicate index: true
     }],
     isArchived: {
         type: Boolean,

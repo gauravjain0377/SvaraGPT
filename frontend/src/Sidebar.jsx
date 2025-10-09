@@ -63,7 +63,7 @@ function Sidebar() {
       if (Array.isArray(projects)) {
         projects.forEach((project) => {
           if (project?.chats?.length) {
-            project.chats.forEach((chat) => {
+            project.chats?.forEach((chat) => {
               if (chat?.threadId) threadsInProjects.add(chat.threadId);
             });
           }
@@ -110,11 +110,33 @@ function Sidebar() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
+      const responseData = await response.json();
+      
+      // Handle both formats: { data: [...] } or directly the array
+      const data = responseData.data || responseData;
+      
+      // Ensure we have an array of projects
       setProjects(Array.isArray(data) ? data : []);
+      
+      // Save to localStorage for offline access
+      localStorage.setItem('projects', JSON.stringify(Array.isArray(data) ? data : []));
     } catch (err) {
       console.error("Error fetching projects:", err);
-      setProjects([]); // Reset to empty array on error
+      
+      // Try to load from localStorage if API fails
+      const savedProjects = localStorage.getItem('projects');
+      if (savedProjects) {
+        try {
+          const parsedProjects = JSON.parse(savedProjects);
+          setProjects(parsedProjects);
+        } catch (parseError) {
+          console.error('Error parsing saved projects:', parseError);
+          setProjects([]); // Reset to empty array on error
+        }
+      } else {
+        setProjects([]); // Reset to empty array if no localStorage data
+      }
+      
       setIsLoading(prev => ({ ...prev, error: 'Failed to load projects' }));
     } finally {
       setIsLoading(prev => ({ ...prev, projects: false }));
@@ -134,13 +156,55 @@ function Sidebar() {
     // Add error event listener
     window.addEventListener('error', errorHandler);
     
+    // Load projects from localStorage if available
+    const savedProjects = localStorage.getItem('projects');
+    if (savedProjects) {
+      try {
+        const parsedProjects = JSON.parse(savedProjects);
+        setProjects(parsedProjects);
+      } catch (error) {
+        console.error('Error parsing saved projects:', error);
+      }
+    }
+    
     // Initialize data
     const initData = async () => {
       try {
-        await Promise.all([getAllThreads(), getAllProjects()]);
+        await getAllThreads();
+        const projectsResponse = await fetch("http://localhost:8080/api/projects");
+        if (projectsResponse.ok) {
+          const projectsData = await projectsResponse.json();
+          // Check if the response has a data property (from the API structure)
+          const projectsArray = projectsData.data || projectsData;
+          
+          if (Array.isArray(projectsArray) && projectsArray.length > 0) {
+            setProjects(projectsArray);
+            localStorage.setItem('projects', JSON.stringify(projectsArray));
+          } else {
+            // If no projects from server, keep using localStorage data
+            console.log("No projects found on server");
+            // Initialize with empty array if no localStorage data
+            if (!localStorage.getItem('projects')) {
+              setProjects([]);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error initializing data:', error);
-        setHasError(true);
+        // Don't set hasError to true for project loading issues
+        // Just use localStorage data if available
+        const savedProjects = localStorage.getItem('projects');
+        if (savedProjects) {
+          try {
+            const parsedProjects = JSON.parse(savedProjects);
+            setProjects(parsedProjects);
+          } catch (parseError) {
+            console.error('Error parsing saved projects:', parseError);
+            setProjects([]);
+          }
+        } else {
+          setProjects([]);
+        }
       }
     };
     
@@ -230,7 +294,7 @@ function Sidebar() {
       setProjects((prev) =>
         prev.map((project) => ({
           ...project,
-          chats: project.chats.filter((chat) => chat.threadId !== threadId),
+          chats: project.chats?.filter((chat) => chat?.threadId !== threadId) || [],
         }))
       );
 
@@ -258,7 +322,12 @@ function Sidebar() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: newProject.id, name: newProject.name }),
       });
-      setProjects((prev) => [...prev, newProject]);
+      setProjects((prev) => {
+        const updatedProjects = [...prev, newProject];
+        // Save to localStorage
+        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        return updatedProjects;
+      });
     } catch (err) {
       console.log(err);
     }
@@ -279,11 +348,14 @@ function Sidebar() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName }),
       });
-      setProjects((prev) =>
-        prev.map((project) =>
+      setProjects((prev) => {
+        const updatedProjects = prev.map((project) =>
           project.id === projectId ? { ...project, name: newName } : project
-        )
-      );
+        );
+        // Save to localStorage
+        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        return updatedProjects;
+      });
     } catch (err) {
       console.log(err);
     }
@@ -291,8 +363,8 @@ function Sidebar() {
 
   const deleteProject = async (projectId) => {
     const project = projects.find((p) => p.id === projectId);
-    if (project && project.chats.length > 0) {
-      const orphanedChats = project.chats.map((chat) => ({
+    if (project && project.chats?.length > 0) {
+      const orphanedChats = project.chats?.map((chat) => ({
         ...chat,
         projectId: null,
       }));
@@ -302,7 +374,12 @@ function Sidebar() {
       await fetch(`http://localhost:8080/api/projects/${projectId}`, {
         method: "DELETE",
       });
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      setProjects((prev) => {
+        const updatedProjects = prev.filter((p) => p.id !== projectId);
+        // Save to localStorage
+        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        return updatedProjects;
+      });
     } catch (err) {
       console.log(err);
     }
@@ -367,7 +444,7 @@ function Sidebar() {
           project.id === projectId
             ? {
                 ...project,
-                chats: [...project.chats, { ...foundThread, projectId }],
+                chats: [...(project.chats || []), { ...foundThread, projectId }],
               }
             : project
         )
@@ -400,7 +477,7 @@ function Sidebar() {
     setProjects((prev) =>
       prev.map((project) => ({
         ...project,
-        chats: project.chats.map((chat) =>
+        chats: project.chats?.map((chat) =>
           chat.threadId === threadId ? { ...chat, title: newTitle } : chat
         ),
       }))
@@ -432,16 +509,64 @@ function Sidebar() {
     }
   };
 
-  const toggleDropdown = (threadId) => {
-    setActiveDropdown(activeDropdown === threadId ? null : threadId);
+  const toggleDropdown = (threadId, event) => {
+    // Prevent the click from bubbling up
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    // Toggle the menu
+    if (activeDropdown === threadId) {
+      setActiveDropdown(null);
+    } else {
+      // Set position for the dropdown menu
+      const rect = event?.currentTarget?.getBoundingClientRect();
+      if (rect) {
+        // Set a timeout to ensure the DOM is updated before positioning
+        setTimeout(() => {
+          const dropdown = document.querySelector(`.thread-${threadId} .dropdownMenu`);
+          if (dropdown) {
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = `${rect.bottom + 5}px`;
+            dropdown.style.left = `${rect.left - 150}px`; // Position to the left of the button
+            dropdown.style.zIndex = '2000';
+          }
+        }, 0);
+      }
+      setActiveDropdown(threadId);
+    }
   };
 
   const closeDropdown = () => {
     setActiveDropdown(null);
   };
 
-  const toggleProjectMenu = (projectId) => {
-    setShowProjectMenu(showProjectMenu === projectId ? null : projectId);
+  const toggleProjectMenu = (projectId, event) => {
+    // Prevent the click from bubbling up
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    // Toggle the menu
+    if (showProjectMenu === projectId) {
+      setShowProjectMenu(null);
+    } else {
+      // Set position for the dropdown menu
+      const rect = event?.currentTarget?.getBoundingClientRect();
+      if (rect) {
+        // Set a timeout to ensure the DOM is updated before positioning
+        setTimeout(() => {
+          const dropdown = document.querySelector(`.project-${projectId} .dropdownMenu`);
+          if (dropdown) {
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = `${rect.bottom + 5}px`;
+            dropdown.style.left = `${rect.left - 150}px`; // Position to the left of the button
+            dropdown.style.zIndex = '2000';
+          }
+        }, 0);
+      }
+      setShowProjectMenu(projectId);
+    }
   };
 
   useEffect(() => {
@@ -507,10 +632,10 @@ function Sidebar() {
                   </div>
                   <div className="threadActions">
                     <div
-                      className="threeDots"
+                      className={`threeDots thread-${thread.threadId}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleDropdown(thread.threadId);
+                        toggleDropdown(thread.threadId, e);
                       }}
                     >
                       <i className="fa-solid fa-ellipsis-vertical"></i>
@@ -570,7 +695,10 @@ function Sidebar() {
               <h3 className="sectionTitle">Projects</h3>
               <button
                 className="createProjectBtn"
-                onClick={() => setShowCreateProject(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCreateProject(true);
+                }}
                 title="Create new project"
               >
                 <i className="fa-solid fa-plus"></i>
@@ -596,15 +724,15 @@ function Sidebar() {
                       <i className="fa-solid fa-folder projectIcon"></i>
                       <span className="projectName">{project.name}</span>
                       <span className="chatCount">
-                        ({project.chats.length})
+                        ({project.chats?.length || 0})
                       </span>
                     </div>
                     <div className="projectActions">
                       <div
-                        className="threeDots"
+                        className={`threeDots project-${project.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleProjectMenu(project.id);
+                          toggleProjectMenu(project.id, e);
                         }}
                       >
                         <i className="fa-solid fa-ellipsis-vertical"></i>
@@ -893,6 +1021,8 @@ function Sidebar() {
                   className="projectOption"
                   onClick={() => {
                     moveToProject(moveTarget, project.id);
+                    setShowMoveMenu(false);
+                    setMoveTarget(null);
                   }}
                 >
                   <i className="fa-solid fa-folder"></i>
@@ -900,14 +1030,16 @@ function Sidebar() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => {
-                setShowMoveMenu(false);
-                setMoveTarget(null);
-              }}
-            >
-              Cancel
-            </button>
+            <div className="modalActions">
+              <button
+                onClick={() => {
+                  setShowMoveMenu(false);
+                  setMoveTarget(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -11,6 +11,7 @@
     top: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    z-index: 1000;
 }
 
 /* Header */
@@ -330,6 +331,7 @@
 .projectActions {
     display: flex;
     gap: 4px;
+    position: relative;
 }
 
 .actionBtn {
@@ -344,6 +346,7 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+    position: relative; /* Add position relative to action buttons */
 }
 
 .actionBtn:hover {
@@ -351,32 +354,86 @@
     color: #ececec;
 }
 
-.projectChats {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    background-color: #1a1a1a;
-    border-top: 1px solid #333;
+.threeDots {
+    position: relative;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
 }
 
-.projectChats .threadItem {
-    border-left: 3px solid #4facfe;
-    margin-left: 20px;
-    margin-right: 8px;
-    margin-bottom: 2px;
-    background-color: transparent;
+.threeDots:hover {
+    background-color: #404040;
 }
 
-.projectChats .threadItem:hover {
+.dropdownMenu {
+    position: fixed;
     background-color: #2a2a2a;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    width: 180px;
+    z-index: 2000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    padding: 4px 0;
 }
 
-.projectChats .threadItem.active {
-    background-color: #333;
-    border-left-color: #00f2fe;
+/* Fix for project menu positioning */
+.projectActions .dropdownMenu {
+    position: fixed;
+    z-index: 2000;
 }
 
-/* Modal Styles */
+.menuItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.menuItem:hover {
+    background-color: #404040;
+}
+
+.menuItem i {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+}
+
+.menuItem span {
+    font-size: 14px;
+}
+
+.menuItem.delete:hover {
+    background-color: rgba(255, 68, 68, 0.2);
+}
+
+.menuItem.delete:hover i,
+.menuItem.delete:hover span {
+    color: #ff4444;
+}
+
+.menuItem.delete {
+    color: #ff6b6b;
+}
+
+.menuItem.delete:hover {
+    background-color: rgba(255, 107, 107, 0.15);
+}
+
+.menuItem i {
+    width: 16px;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* Modal Styles - Fixed */
 .modal {
     position: fixed;
     top: 0;
@@ -387,24 +444,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
-    backdrop-filter: blur(4px);
+    z-index: 3000;
+    backdrop-filter: blur(3px);
 }
 
 .modalContent {
     background-color: #2a2a2a;
     border-radius: 12px;
     padding: 24px;
-    min-width: 320px;
-    max-width: 400px;
+    width: 400px;
     border: 1px solid #404040;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    color: #ececec;
 }
 
 .modalContent h3 {
-    margin: 0 0 12px 0;
+    margin: 0 0 16px 0;
     color: #ececec;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
 }
 
@@ -446,28 +503,17 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    min-width: 80px;
-}
-
-.modalActions button:first-child {
+    min-width: 100px;
+    height: 40px;
     background-color: #404040;
     color: #ececec;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.modalActions button:first-child:hover {
+.modalActions button:hover {
     background-color: #555;
-}
-
-.modalActions button:last-child {
-    background: linear-gradient(135deg, #4facfe, #00f2fe);
-    color: #fff;
-    font-weight: 600;
-}
-
-.modalActions button:last-child:hover {
-    background: linear-gradient(135deg, #3a8fd9, #00d4e6);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
 }
 
 .modalActions button.deleteBtn {
@@ -479,13 +525,16 @@
 .modalActions button.deleteBtn:hover {
     background: linear-gradient(135deg, #ff6b6b, #ff0000);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
 }
 
+/* Project Options Styling */
 .projectOptions {
     margin-bottom: 20px;
     max-height: 300px;
     overflow-y: auto;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    padding: 8px;
 }
 
 .projectOption {
@@ -497,6 +546,7 @@
     cursor: pointer;
     transition: background-color 0.2s;
     margin-bottom: 4px;
+    background-color: #2a2a2a;
 }
 
 .projectOption:hover {
@@ -506,93 +556,13 @@
 .projectOption i {
     color: #4facfe;
     font-size: 16px;
+    min-width: 20px;
 }
 
 .projectOption span {
-    color: #ececec;
+    color: #ffffff;
     font-size: 14px;
-}
-
-/* Enhanced thread actions visibility */
-.threadItem .threadActions {
-    display: flex;
-    gap: 2px;
-}
-
-.threadActions .actionBtn {
-    width: 20px;
-    height: 20px;
-    font-size: 11px;
-}
-
-.threadActions .deleteBtn {
-    width: 20px;
-    height: 20px;
-    font-size: 11px;
-}
-
-/* Three Dots Menu */
-.threeDots {
-    position: relative;
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: transparent;
-    color: #666;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.threeDots:hover {
-    background-color: #404040;
-    color: #ececec;
-}
-
-.dropdownMenu {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    background-color: #2a2a2a;
-    border: 1px solid #404040;
-    border-radius: 8px;
-    padding: 6px 0;
-    min-width: 180px;
-    z-index: 1000;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-.menuItem {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    font-size: 13px;
-    color: #ececec;
-    white-space: nowrap;
-}
-
-.menuItem:hover {
-    background-color: #404040;
-}
-
-.menuItem.delete {
-    color: #ff6b6b;
-}
-
-.menuItem.delete:hover {
-    background-color: rgba(255, 107, 107, 0.15);
-}
-
-.menuItem i {
-    width: 16px;
-    font-size: 13px;
-    text-align: center;
+    font-weight: 500;
 }
 
 /* Project Selector */
