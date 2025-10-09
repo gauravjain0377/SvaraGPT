@@ -11,7 +11,7 @@ import logo3 from "./assets/logo3.png";
 // rehype-highlight
 
 function Chat() {
-    const {newChat, prevChats, reply} = useContext(MyContext);
+    const { newChat, prevChats, reply, setPrompt, setPrevChats, setNewChat, setCurrentProject, currThreadId } = useContext(MyContext);
     const [latestReply, setLatestReply] = useState(null);
 
     useEffect(() => {
@@ -37,11 +37,38 @@ function Chat() {
     }, [prevChats, reply])
 
     const suggestedPrompts = [
-        "Help me write a Java function",
-        "Explain quantum computing",
-        "Create a marketing strategy",
-        "Debug my JavaScript code"
+        {
+            title: "    Help me write a Java function. ",
+         
+        },
+        {
+            title: "Explain quantum computing",
+           
+        },
+        {
+            title: "Create a marketing strategy",
+            
+        },
+        {
+            title: "Debug my JavaScript code",
+           
+        }
     ];
+
+    const handleSuggestedPromptClick = (promptText) => {
+        // Clear current project context for standalone chats
+        setCurrentProject?.(null);
+        
+        // Set the prompt in the input field and trigger send via ChatWindow's getReply
+        setPrompt(promptText);
+        
+        // Dispatch event to trigger the send - ChatWindow will handle all UI updates
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("svaragpt-send-prompt", {
+                detail: { prompt: promptText, threadId: currThreadId }
+            }));
+        }
+    };
 
     return (
         <div className="chatContainer">
@@ -58,17 +85,25 @@ function Chat() {
                         
                         <div className="suggestedPrompts">
                             {suggestedPrompts.map((prompt, idx) => (
-                                <div key={idx} className="promptCard" onClick={() => {
-                                    // You can add functionality here to set the prompt and send it
-                                    console.log('Clicked prompt:', prompt);
-                                }}>
-                                    <span>{prompt}</span>
-                                    <i className="fa-solid fa-arrow-up-right"></i>
-                                </div>
+                                <button
+                                    key={idx}
+                                    className="promptCard"
+                                    type="button"
+                                    onClick={() => handleSuggestedPromptClick(prompt.title)}
+                                >
+                                    <div className="promptCardIcon" style={{ background: prompt.color }}>
+                                        <i className={`fa-solid ${prompt.icon}`}></i>
+                                    </div>
+                                    <div className="promptCardTexts">
+                                        <span className="promptCardTitle">{prompt.title}</span>
+                                        <span className="promptCardSubtitle">{prompt.subtitle}</span>
+                                    </div>
+                                  
+                                </button>
                             ))}
                         </div>
 
-                       
+                        
                     </div>
                 </div>
             ) : (

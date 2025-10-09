@@ -9,7 +9,7 @@ export async function getGitHubModelsResponse(message, options = {}) {
 	}
 
 	const controller = new AbortController();
-	const { timeoutMs = 20000, model = "gpt-4o-mini" } = options;
+	const { timeoutMs = 30000, model = "gpt-4o-mini" } = options;
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
 	try {
@@ -99,5 +99,3 @@ async function safeReadText(res) {
 }
 
 export default getGitHubModelsResponse;
-
-

@@ -1,7 +1,7 @@
 import "./ChatWindow.css";
 import Chat from "./Chat.jsx";
 import { MyContext } from "./MyContext.jsx";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 import {ScaleLoader} from "react-spinners";
@@ -10,7 +10,7 @@ import logo3 from "./assets/logo3.png";
 function ChatWindow() {
     const {
         prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
-        currentProject, projects, setProjects, allThreads, setAllThreads, prevChats
+        currentProject, setCurrentProject, projects, setProjects, allThreads, setAllThreads, prevChats
     } = useContext(MyContext);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -39,6 +39,9 @@ function ChatWindow() {
         setIsOpen(false);
     }, [user]);
 
+    const queueRef = useRef([]);
+    const isProcessingRef = useRef(false);
+
     // Get user initials for avatar
     const getUserInitials = () => {
         if (!user) return "";
@@ -53,22 +56,25 @@ function ChatWindow() {
         return user.email ? user.email.charAt(0).toUpperCase() : "";
     };
 
-    const getReply = async () => {
-        if(!prompt.trim()) return;
+    const getReply = useCallback(async (overridePrompt) => {
+        const activePrompt = (overridePrompt ?? prompt).trim();
+        if(!activePrompt) return;
         setLoading(true);
         setNewChat(false);
+
+        let usedPrompt = activePrompt;
 
         // 1) Optimistically render user's message immediately
         setPrevChats(prev => ([
             ...prev,
-            { role: "user", content: prompt },
+            { role: "user", content: usedPrompt },
             { role: "assistant", content: "", isLoading: true }
         ]));
 
         // 2) If this is the first message in a new chat, reflect it in the sidebar instantly
         const newThread = {
             threadId: currThreadId,
-            title: prompt.slice(0, 50) + (prompt.length > 50 ? '...' : ''),
+            title: usedPrompt.slice(0, 50) + (usedPrompt.length > 50 ? '...' : ''),
             projectId: currentProject
         };
         if (prevChats.length === 0) {
@@ -95,10 +101,10 @@ function ChatWindow() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ message: prompt, threadId: currThreadId })
+            body: JSON.stringify({ message: usedPrompt, threadId: currThreadId })
         };
 
-        const currentPrompt = prompt; // capture
+        const currentPrompt = usedPrompt; // capture
         setPrompt("");
 
         try {
@@ -111,7 +117,7 @@ function ChatWindow() {
                     // Show modal
                     setShowGuestLimitModal(true);
                     // Remove the loading message
-                    setPrevChats(prev => prev.slice(0, -2));
+                    setPrevChats(prevState => prevState.filter(chat => !(chat.role === "assistant" && chat.isLoading)));
                     setLoading(false);
                     return;
                 }
@@ -132,6 +138,10 @@ function ChatWindow() {
                 }
                 return updated;
             });
+
+            window.dispatchEvent(new CustomEvent("svaragpt-reply-received", {
+                detail: { threadId: currThreadId }
+            }));
 
             // For consistency, ensure sidebar entry title is set (if backend might set different)
             if (currentProject) {
@@ -158,7 +168,41 @@ function ChatWindow() {
             });
         }
         setLoading(false);
-    }
+    }, [prompt, setLoading, setNewChat, setPrevChats, currThreadId, currentProject, prevChats.length, setProjects, setAllThreads, setPrompt, setReply, setShowGuestLimitModal, navigate, projects, allThreads]);
+
+    const processQueue = useCallback(() => {
+        if (isProcessingRef.current) return;
+        const next = queueRef.current.shift();
+        if (!next) return;
+        isProcessingRef.current = true;
+        getReply(next.prompt).finally(() => {
+            isProcessingRef.current = false;
+            processQueue();
+        });
+    }, [getReply]);
+
+    useEffect(() => {
+        const handler = (event) => {
+            const { prompt: queuedPrompt } = event.detail || {};
+            if (!queuedPrompt) return;
+            queueRef.current.push({ prompt: queuedPrompt });
+            processQueue();
+        };
+        window.addEventListener("svaragpt-send-prompt", handler);
+        return () => {
+            window.removeEventListener("svaragpt-send-prompt", handler);
+        };
+    }, [processQueue]);
+
+    useEffect(() => {
+        const handleReplyReceived = () => {
+            queueRef.current.shift();
+            isProcessingRef.current = false;
+            processQueue();
+        };
+        window.addEventListener("svaragpt-reply-received", handleReplyReceived);
+        return () => window.removeEventListener("svaragpt-reply-received", handleReplyReceived);
+    }, [processQueue]);
 
     // Remove previous append-on-reply logic to avoid duplicates; getReply now handles UI updates
 
@@ -189,7 +233,7 @@ function ChatWindow() {
         setShowLogoutModal(false);
     }
 
-    const handleExportChatData = (format) => {
+    const handleExportChatData = useCallback((format) => {
         const exportData = {
             exportDate: new Date().toISOString(),
             user: {
@@ -271,7 +315,7 @@ function ChatWindow() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         setShowExportModal(false);
-    };
+    }, [user, projects, allThreads, prevChats]);
 
     const toggleFAQ = (index) => {
         setExpandedFAQ(expandedFAQ === index ? null : index);
@@ -280,7 +324,7 @@ function ChatWindow() {
     const handleContactFormChange = (e) => {
         const { name, value } = e.target;
         setContactForm(prev => ({ ...prev, [name]: value }));
-    }
+    };
 
     const handleContactFormSubmit = async (e) => {
         e.preventDefault();

@@ -14,18 +14,54 @@ const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 // Race Gemini and GitHub Models; return first successful text
 async function getFastestResponse(message) {
+    // Try providers in parallel first
     const attempts = [
-        getGeminiResponse(message).then(text => ({ provider: "gemini", text })).catch(err => { throw { provider: "gemini", err }; }),
-        getGitHubModelsResponse(message).then(text => ({ provider: "github_models", text })).catch(err => { throw { provider: "github_models", err }; })
+        getGeminiResponse(message)
+            .then(text => ({ provider: "gemini", text, success: true }))
+            .catch(err => ({ provider: "gemini", error: err.message, success: false })),
+        getGitHubModelsResponse(message)
+            .then(text => ({ provider: "github_models", text, success: true }))
+            .catch(err => ({ provider: "github_models", error: err.message, success: false }))
     ];
 
     try {
-        const winner = await Promise.any(attempts);
-        return winner.text;
-    } catch (aggregateError) {
-        // If both failed, surface a combined message
-        const details = aggregateError?.errors?.map(e => `${e.provider}: ${e.err?.message || e}`).join(" | ") || String(aggregateError);
-        throw new Error(`All providers failed: ${details}`);
+        // Wait for first successful response
+        const results = await Promise.race([
+            Promise.all(attempts).then(results => {
+                const successful = results.find(r => r.success);
+                if (successful) return successful;
+                throw new Error("All providers failed in parallel");
+            }),
+            // Also race each individual promise
+            ...attempts.map(p => p.then(r => r.success ? r : Promise.reject(r)))
+        ]);
+        
+        console.log(`✅ Response from ${results.provider}`);
+        return results.text;
+    } catch (error) {
+        // All parallel attempts failed, try sequential fallback
+        console.log("⚠️  Parallel attempts failed, trying sequential fallback...");
+        
+        // Try Gemini first
+        try {
+            const geminiText = await getGeminiResponse(message);
+            console.log("✅ Gemini fallback successful");
+            return geminiText;
+        } catch (geminiErr) {
+            console.log(`❌ Gemini failed: ${geminiErr.message}`);
+        }
+
+        // Try GitHub Models as last resort
+        try {
+            const githubText = await getGitHubModelsResponse(message);
+            console.log("✅ GitHub Models fallback successful");
+            return githubText;
+        } catch (githubErr) {
+            console.log(`❌ GitHub Models failed: ${githubErr.message}`);
+        }
+
+        // If everything fails, provide helpful error
+        throw new Error("All AI providers are currently unavailable. Please try again in a moment.");
     }
 }
 
