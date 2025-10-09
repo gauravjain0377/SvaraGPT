@@ -40,25 +40,51 @@ function Sidebar() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showProjectMenu, setShowProjectMenu] = useState(null);
 
+  const [isLoading, setIsLoading] = useState({
+    threads: false,
+    projects: false,
+    error: null
+  });
+
   const getAllThreads = async () => {
+    if (isLoading.threads) return;
+    
+    setIsLoading(prev => ({ ...prev, threads: true, error: null }));
+    
     try {
       const response = await fetch("http://localhost:8080/api/thread");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const res = await response.json();
-      // Filter out threads that belong to projects
+      
+      // Safely handle projects data
       const threadsInProjects = new Set();
-      projects.forEach((project) => {
-        project.chats.forEach((chat) => threadsInProjects.add(chat.threadId));
-      });
+      if (Array.isArray(projects)) {
+        projects.forEach((project) => {
+          if (project?.chats?.length) {
+            project.chats.forEach((chat) => {
+              if (chat?.threadId) threadsInProjects.add(chat.threadId);
+            });
+          }
+        });
+      }
 
-      const filteredData = res
-        .map((thread) => ({ threadId: thread.threadId, title: thread.title }))
-        .filter((thread) => !threadsInProjects.has(thread.threadId));
+      const filteredData = Array.isArray(res) 
+        ? res
+            .filter(thread => thread?.threadId) // Ensure thread has an ID
+            .map((thread) => ({
+              threadId: thread.threadId, 
+              title: thread.title || 'Untitled Chat'
+            }))
+            .filter((thread) => !threadsInProjects.has(thread.threadId))
+        : [];
 
-      // Dedupe by threadId (and preserve order from backend)
+      // Dedupe by threadId
       const seen = new Set();
       const unique = [];
       for (const t of filteredData) {
-        if (!seen.has(t.threadId)) {
+        if (t?.threadId && !seen.has(t.threadId)) {
           seen.add(t.threadId);
           unique.push(t);
         }
@@ -66,27 +92,90 @@ function Sidebar() {
 
       setAllThreads(unique);
     } catch (err) {
-      console.log(err);
+      console.error("Error fetching threads:", err);
+      setAllThreads([]); // Reset to empty array on error
+      setIsLoading(prev => ({ ...prev, error: 'Failed to load threads' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, threads: false }));
     }
   };
 
   const getAllProjects = async () => {
+    if (isLoading.projects) return;
+    
+    setIsLoading(prev => ({ ...prev, projects: true, error: null }));
+    
     try {
       const response = await fetch("http://localhost:8080/api/projects");
-      const res = await response.json();
-      setProjects(res);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setProjects(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.log(err);
+      console.error("Error fetching projects:", err);
+      setProjects([]); // Reset to empty array on error
+      setIsLoading(prev => ({ ...prev, error: 'Failed to load projects' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, projects: false }));
     }
   };
 
+  // Add error boundary state
+  const [hasError, setHasError] = useState(false);
+
+  // Error boundary effect
   useEffect(() => {
-    getAllThreads();
+    const errorHandler = (error) => {
+      console.error('Error in Sidebar component:', error);
+      setHasError(true);
+    };
+
+    // Add error event listener
+    window.addEventListener('error', errorHandler);
+    
+    // Initialize data
+    const initData = async () => {
+      try {
+        await Promise.all([getAllThreads(), getAllProjects()]);
+      } catch (error) {
+        console.error('Error initializing data:', error);
+        setHasError(true);
+      }
+    };
+    
+    initData();
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('error', errorHandler);
+    };
+  }, []); // Empty dependency array to run only on mount
+
+  // Update threads when current thread or projects change
+  useEffect(() => {
+    if (!isLoading.threads) {
+      getAllThreads();
+    }
   }, [currThreadId, projects]);
 
-  useEffect(() => {
-    getAllProjects();
-  }, []);
+  // Show error state if something went wrong
+  if (hasError) {
+    return (
+      <div className="sidebar error-state">
+        <div className="error-message">
+          <h3>Something went wrong</h3>
+          <p>Please refresh the page or try again later.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="retry-button"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const createNewChat = (projectId = null) => {
     const newThreadId = uuidv1();

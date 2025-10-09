@@ -131,9 +131,8 @@ router.post("/chat", async (req, res) => {
             thread.messages.push({ role: "user", content: message });
         }
 
-        console.log(" Fetching AI response for message:", message);
+       
         const assistantReply = await getFastestResponse(message);
-        console.log(" AI response received:", assistantReply.substring(0, 100) + "...");
 
         thread.messages.push({ role: "assistant", content: assistantReply });
         thread.updatedAt = new Date();
