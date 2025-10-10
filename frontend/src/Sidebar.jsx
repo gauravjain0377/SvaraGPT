@@ -2,6 +2,7 @@ import "./Sidebar.css";
 import { useContext, useEffect, useState } from "react";
 import { MyContext } from "./MyContext.jsx";
 import { v1 as uuidv1 } from "uuid";
+import UserProfile from "./components/auth/UserProfile";
 
 function Sidebar() {
   const {
@@ -611,6 +612,7 @@ function Sidebar() {
           <i className="fa-solid fa-plus"></i>
           <span>New chat</span>
         </button>
+        <UserProfile />
       </div>
 
       {/* Navigation Tabs */}

@@ -2,17 +2,46 @@ import express from "express";
 import "dotenv/config";
 import cors from "cors";
 import mongoose from "mongoose";
+import passport from "passport";
+import session from "express-session";
 import chatRoutes from "./routes/chat.js";
 import projectRoutes from "./routes/project.js";
+import authRoutes from "./routes/auth.js";
+import setupPassport from "./utils/passport.js";
 
 const app = express();
 const PORT = 8080;
 
+// Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true
+}));
 
+// Session configuration
+app.use(session({
+  secret: process.env.JWT_SECRET || process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: false, // Set to true if using HTTPS
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+setupPassport();
+
+// Routes
 app.use("/api", chatRoutes);
 app.use("/api", projectRoutes);
+app.use("/api", authRoutes);
+
+// Register auth routes without /api prefix for Google OAuth
+app.use("/", authRoutes);
 
 app.listen(PORT, () => {
     console.log(`server running on ${PORT}`);
