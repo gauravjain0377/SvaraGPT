@@ -280,6 +280,7 @@ function Sidebar() {
 
   const deleteThread = async (threadId) => {
     try {
+      // Delete the thread from MongoDB
       const response = await fetch(
         `http://localhost:8080/api/thread/${threadId}`,
         { method: "DELETE" }
@@ -287,16 +288,34 @@ function Sidebar() {
       const res = await response.json();
       console.log(res);
 
+      // Remove from local state
       setAllThreads((prev) =>
         prev.filter((thread) => thread.threadId !== threadId)
       );
 
-      setProjects((prev) =>
-        prev.map((project) => ({
+      // Also remove from all projects
+      const updatedProjects = prev => {
+        const newProjects = prev.map((project) => ({
           ...project,
           chats: project.chats?.filter((chat) => chat?.threadId !== threadId) || [],
-        }))
-      );
+        }));
+        
+        // Save to localStorage
+        localStorage.setItem('projects', JSON.stringify(newProjects));
+        return newProjects;
+      };
+      
+      setProjects(updatedProjects);
+
+      // Also remove from any projects in MongoDB
+      try {
+        // The correct endpoint format based on the backend route
+        await fetch(`http://localhost:8080/api/projects/all/chats/${threadId}?removeFromAll=true`, {
+          method: "DELETE"
+        });
+      } catch (projectErr) {
+        console.error("Error removing chat from projects:", projectErr);
+      }
 
       if (threadId === currThreadId) {
         createNewChat();
@@ -371,7 +390,8 @@ function Sidebar() {
       setAllThreads((prev) => [...prev, ...orphanedChats]);
     }
     try {
-      await fetch(`http://localhost:8080/api/projects/${projectId}`, {
+      // Use hardDelete=true to ensure it's removed from MongoDB
+      await fetch(`http://localhost:8080/api/projects/${projectId}?hardDelete=true`, {
         method: "DELETE",
       });
       setProjects((prev) => {

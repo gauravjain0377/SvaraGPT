@@ -36,7 +36,7 @@ function Chat() {
     }, [prevChats, reply])
 
     const suggestedPrompts = [
-        "Help me write a Python function",
+        "Help me write a Java function",
         "Explain quantum computing",
         "Create a marketing strategy",
         "Debug my JavaScript code"

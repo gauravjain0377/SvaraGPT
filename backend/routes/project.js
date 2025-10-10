@@ -136,7 +136,7 @@ router.delete("/projects/:id", async (req, res) => {
         
         res.json({ 
             success: true,
-            message: hardDelete === 'true' 
+            message: hardDelete === 'true'
                 ? "Project permanently deleted" 
                 : "Project moved to trash"
         });
@@ -309,12 +309,39 @@ router.post("/projects/move-chat", async (req, res) => {
     }
 });
 
+// Remove chat from all projects
+router.delete("/projects/all/chats/:threadId", async (req, res) => {
+    const { threadId } = req.params;
+    
+    try {
+        // Remove chat from all projects
+        await Project.updateMany(
+            {},
+            { 
+                $pull: { chats: { threadId } },
+                $set: { updatedAt: new Date() }
+            }
+        );
+        
+        res.status(200).json({ success: "Chat removed from all projects" });
+    } catch (err) {
+        console.error("Error removing chat from all projects:", err);
+        res.status(500).json({ error: "Failed to remove chat from projects" });
+    }
+});
+
 // Remove chat from project
 router.delete("/projects/:id/chats/:threadId", async (req, res) => {
     const { id, threadId } = req.params;
     const { removeFromAll = false } = req.query;
     
     try {
+        // Verify the thread exists before removing
+        const thread = await Thread.findOne({ threadId });
+        if (!thread) {
+            return res.status(404).json({ error: "Thread not found" });
+        }
+        
         if (removeFromAll === 'true') {
             // Remove chat from all projects
             await Project.updateMany(

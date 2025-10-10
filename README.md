@@ -1,187 +1,209 @@
 # SvaraGPT
 
-A lightweight, full‑stack conversational AI server that powers GPT‑style chats. It uses Google’s Gemini models for responses and MongoDB for persistent threads, wrapped in an Express API.
+<div align="center">
+  <img src="assets/logo.svg" alt="SvaraGPT Logo" width="180" />
+  <p><em>A lightweight, full‑stack conversational AI application powered by Google's Gemini models</em></p>
+  
+</div>
 
-<p align="center">
-  <img src="assets/logo.svg" alt="SvaraGPT Logo" width="160" />
-</p>
+<br>
 
-- Fast chat backend with Node.js/Express
-- Persistent threads with MongoDB via Mongoose
-- Google GenAI (@google/genai) with gemini-2.5-flash
-- Simple REST API: create chats, retrieve threads, delete threads
-- Ready for a web or mobile frontend
+## 📋 Table of Contents
+- [Overview](#-overview)
+- [Color Palette](#-color-palette)
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [API Reference](#-api-reference)
+- [Project Structure](#-project-structure)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-## Tech Stack
-- Node.js + Express
-- MongoDB + Mongoose
-- Google GenAI SDK: `@google/genai`
-- Runtime config with `dotenv`
+## 🔍 Overview
 
-## Project Structure
-```text path=null start=null
-SvaraGPT/
-└─ backend/
-   ├─ server.js            # Express app bootstrap
-   ├─ routes/
-   │  └─ chat.js          # Chat + threads API
-   ├─ models/
-   │  └─ Thread.js        # Mongoose schema for threads/messages
-   ├─ utils/
-   │  └─ gemini.js        # GenAI helper
-   ├─ package.json
-   └─ .env                # Env vars (not committed)
-└─ assets/
-   └─ logo.svg            # Vector logo for the project
-```
+SvaraGPT is a modern, full-stack conversational AI platform that provides a lightweight alternative to enterprise AI solutions. It combines the power of Google's Gemini models with a clean React frontend and robust Express backend to deliver an accessible, self-hostable AI assistant.
 
-## Getting Started
+### Core Principles
+
+- **Accessibility**: Advanced AI without enterprise infrastructure requirements
+- **Data Ownership**: Complete control over conversation data
+- **Lightweight Design**: Powerful functionality with minimal resource usage
+- **Extensibility**: Modular architecture for easy customization
+- **Privacy-Focused**: User-controlled data storage
+
+## 🎨 Color Palette
+
+SvaraGPT uses a carefully selected color palette that balances professionalism with modern design:
+
+| Color | Hex Code | Usage |
+|-------|----------|-------|
+| Deep Indigo | `#2D2A6A` | Primary brand color, headers |
+| Electric Violet | `#7C3AED` | Accents, buttons, links |
+| Teal | `#14B8A6` | Secondary accents, success states |
+| Slate Gray | `#64748B` | Body text, secondary information |
+| Light Gray | `#F1F5F9` | Backgrounds, containers |
+| White | `#FFFFFF` | Main background, text on dark colors |
+
+## ✨ Features
+
+- **Intelligent Conversations**: Powered by Google's Gemini models
+- **Thread Management**: Persistent conversation threads with MongoDB
+- **Modern UI**: Clean React frontend with responsive design
+- **REST API**: Simple endpoints for chat, threads, and projects
+- **GitHub Integration**: Code-aware conversations (v3.0+)
+- **Markdown Support**: Rich text rendering with syntax highlighting
+
+## 🏗️ Architecture
+
+SvaraGPT follows a clean, three-tier architecture:
+
+1. **Frontend Layer**: React application with Vite for modern UI
+2. **API Layer**: Express.js server handling requests and business logic
+3. **Data Layer**: MongoDB for persistent storage of threads and projects
+
+Communication between layers is handled via RESTful API endpoints, with the frontend making asynchronous requests to the backend.
+
+## 🛠️ Tech Stack
+
+### Backend
+- **Node.js & Express**: Fast, non-blocking server architecture
+- **MongoDB & Mongoose**: Flexible document database with schema validation
+- **Google GenAI SDK**: Integration with Gemini models
+- **dotenv**: Environment configuration management
+- **CORS**: Cross-origin resource sharing support
+
+### Frontend
+- **React 19**: Component-based UI library
+- **Vite 7**: Next-generation frontend tooling
+- **React Markdown**: Rich text rendering
+- **FontAwesome**: Comprehensive icon library
+- **rehype-highlight**: Code syntax highlighting
+
+## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js 18+ (tested on Node 22)
 - MongoDB connection string
 - Google API key with Generative Language API access
 
-### Environment
-Create `backend/.env` with:
-```bash path=null start=null
-GOOGLE_API_KEY=your_google_api_key_here
-MONGO_URL=your_mongodb_connection_string
-PORT=8080
+### Backend Setup
+
+1. **Environment Configuration**:
+   Create `backend/.env` with:
+   ```
+   GOOGLE_API_KEY=your_google_api_key_here
+   MONGO_URL=your_mongodb_connection_string
+   PORT=8080
+   ```
+
+2. **Installation & Launch**:
+   ```bash
+   # From project root
+   cd backend
+   npm install
+   
+   # Development mode with auto-restart
+   npx nodemon server.js
+   
+   # Or production mode
+   node server.js
+   ```
+
+### Frontend Setup
+
+1. **Installation**:
+   ```bash
+   # From project root
+   cd frontend
+   npm install
+   ```
+
+2. **Development Mode**:
+   ```bash
+   npm run dev
+   ```
+   Access the application at: http://localhost:5173
+
+3. **Production Build**:
+   ```bash
+   npm run build
+   ```
+   Output will be in the `frontend/dist` directory.
+
+## 📡 API Reference
+
+Base URL: `/api`
+
+| Endpoint | Method | Description | Request Body | Response |
+|----------|--------|-------------|--------------|----------|
+| `/chat` | POST | Send message & get reply | `{threadId, message}` | `{reply}` |
+| `/thread` | GET | List all threads | - | Array of threads |
+| `/thread/:id` | GET | Get thread by ID | - | Thread with messages |
+| `/thread/:id` | DELETE | Delete thread | - | Success status |
+| `/project` | GET | List all projects | - | Array of projects |
+| `/project/:id` | GET | Get project by ID | - | Project details |
+
+## 📁 Project Structure
+
+```
+SvaraGPT/
+├─ backend/                # Server-side code
+│  ├─ models/              # MongoDB schemas
+│  ├─ routes/              # API endpoints
+│  ├─ utils/               # Helper functions
+│  ├─ server.js            # Express application
+│  └─ .env                 # Environment variables
+├─ frontend/               # Client-side code
+│  ├─ src/                 # React components
+│  │  ├─ App.jsx           # Main application
+│  │  ├─ Chat.jsx          # Chat interface
+│  │  ├─ ChatWindow.jsx    # Message display
+│  │  ├─ Sidebar.jsx       # Navigation
+│  │  └─ MyContext.jsx     # State management
+│  └─ vite.config.js       # Build configuration
+└─ assets/                 # Shared resources
+   └─ logo.svg             # Project logo
 ```
 
-### Install
-```bash path=null start=null
-# From project root
-cd backend
-npm install
-```
+## 🗺️ Roadmap
 
-### Run (Development)
-```bash path=null start=null
-# Using nodemon (auto-restart on changes)
-npx nodemon server.js
+### Version 1.0 (Released)
+- Basic Express.js backend
+- Google Gemini integration
+- MongoDB persistence
+- Thread-based conversations
 
-# Or plain node
-node server.js
-```
+### Version 2.0 (Current)
+- React frontend with Vite
+- Enhanced conversation threading
+- Improved error handling
+- Project management functionality
 
-Server boots at: http://localhost:8080
+### Version 3.0 (Planned)
+- GitHub integration
+- Advanced thread management
+- Customizable AI behavior
+- Enhanced UI/UX
+- Extended API
 
-## API
-Base path: `/api`
+## 👥 Contributing
 
-### POST /api/chat
-Send a message and receive the assistant reply. Also persists the conversation under a thread.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-Request body:
-```json path=null start=null
-{
-  "threadId": "string",   
-  "message": "string"     
-}
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Response body:
-```json path=null start=null
-{
-  "reply": "assistant response text"
-}
-```
+## 📄 License
 
-Example:
-```bash path=null start=null
-curl -X POST http://localhost:8080/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"threadId":"demo-1","message":"Explain how AI works in a few words"}'
-```
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-### GET /api/thread
-Returns all threads (most recent first):
-```bash path=null start=null
-curl http://localhost:8080/api/thread
-```
+---
 
-### GET /api/thread/:threadId
-Returns messages for a specific thread:
-```bash path=null start=null
-curl http://localhost:8080/api/thread/demo-1
-```
-
-### DELETE /api/thread/:threadId
-Deletes a specific thread:
-```bash path=null start=null
-curl -X DELETE http://localhost:8080/api/thread/demo-1
-```
-
-## How it works (high level)
-- The server exposes REST endpoints in `routes/chat.js`.
-- Incoming user messages are forwarded to Google Gemini via `@google/genai`.
-- Replies are returned and stored in MongoDB in `Thread` documents.
-
-## Troubleshooting
-- Model 404 or not supported:
-  - Ensure `@google/genai` is installed and model is set to `gemini-2.5-flash`.
-  - Confirm your key has access; re‑generate if needed.
-- API key not configured:
-  - Ensure `GOOGLE_API_KEY` is present in `backend/.env`.
-- Mongo connection fails:
-  - Double‑check `MONGO_URL`, network access, and that MongoDB is reachable.
-
-## Production Notes
-- Use a process manager (PM2, systemd, or container) rather than nodemon.
-- Set proper CORS and rate‑limits when exposing publicly.
-- Consider adding request logs, tracing, and auth in front of `/api`.
-
-## SvaraGPT System Prompt (drop‑in)
-Use this to configure the assistant persona in your UI/backend:
-```text path=null start=null
-You are SvaraGPT, a helpful, fast, and factual AI assistant. Goals:
-- Provide concise, correct answers; ask for clarification when needed.
-- Show step‑by‑step thinking only when explicitly requested to explain (otherwise, summarize).
-- Be safe: refuse harmful or unethical requests.
-- Keep a friendly, professional tone.
-
-Tools/context:
-- You can answer general knowledge, programming, and troubleshooting questions.
-- If a question depends on unavailable context (secrets, files, or network), state that clearly and ask for details.
-
-Constraints:
-- Never fabricate API keys, credentials, or personal data.
-- Prefer short, direct answers with optional follow‑ups.
-
-Output format:
-- Default to plain text. Use bullet points for lists.
-- Provide code blocks for code or terminal commands.
-```
-
-## Logo Brief & Prompts
-Use the prompts below with your favorite image model (Midjourney, SDXL, Firefly, DALL·E). The delivered vector logo lives at `assets/logo.svg`.
-
-Brand direction:
-- Name: SvaraGPT (Svara = “voice/sound”) → cue: sound waves + chat bubble
-- Style: modern, clean, geometric; tech‑friendly; high contrast
-- Colors: Deep indigo (#2D2A6A), Electric violet (#7C3AED), Teal accent (#14B8A6), on white/dark backgrounds
-
-General prompt:
-```text path=null start=null
-Design a modern vector logo for “SvaraGPT”, an AI chat assistant. Incorporate a minimal speech bubble and stylized sound waves forming an “S”. Flat, geometric shapes, smooth curves, and balanced negative space. Use a deep indigo base with electric violet and subtle teal accents. Produce a crisp, scalable vector suitable for app icon and wordmark lockups.
-```
-
-Midjourney‑style prompt:
-```text path=null start=null
-SvaraGPT logo, minimal speech bubble + waveform forming an S, geometric, flat design, tech brand, negative space mastery, deep indigo #2D2A6A, electric violet #7C3AED accents, subtle teal #14B8A6 highlight, clean vector, simple iconic mark, high contrast, centered composition, white background, no gradients, no 3D, SVG style --v 6 --style raw
-```
-
-Stable Diffusion XL prompt:
-```text path=null start=null
-<lora:vector_logo:1> Minimal vector logo for “SvaraGPT” featuring a speech bubble and stylized S‑shaped sound waves. Flat geometric style, deep indigo with violet accents, crisp lines, high contrast, SVG look, no text, white background.
-```
-
-## License
-MIT
-
-## Acknowledgements
-- Google Generative AI
-- MongoDB + Mongoose
-- Express.js
+<div align="center">
+  <p>Built with ❤️ by the SvaraGPT Team</p>
+</div>
