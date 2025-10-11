@@ -2,9 +2,7 @@ import "./ChatWindow.css";
 import Chat from "./Chat.jsx";
 import { MyContext } from "./MyContext.jsx";
 import { useContext, useState, useEffect } from "react";
-import { ScaleLoader } from "react-spinners";
-import { AuthContext } from "./context/AuthContext";
-import UserProfile from "./components/auth/UserProfile";
+import {ScaleLoader} from "react-spinners";
 
 function ChatWindow() {
     const {
@@ -124,10 +122,33 @@ function ChatWindow() {
                     </div>
                     <div className="headerActions">
                         
-                        <UserProfile />
+                        <div className="userProfile" onClick={handleProfileClick}>
+                            <div className="userAvatar">GJ</div>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            {/* Profile Dropdown */}
+            {
+                isOpen && 
+                <div className="profileDropdown">
+                    <div className="dropdownItem">
+                        <i className="fa-solid fa-user"></i>
+                        <span>Gaurav Jain</span>
+                    </div>
+                    <div className="dropdownSeparator"></div>
+                    <div className="dropdownItem">
+                        <i className="fa-solid fa-gear"></i>
+                        <span>Settings</span>
+                    </div>
+                    <div className="dropdownSeparator"></div>
+                    <div className="dropdownItem">
+                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>Log out</span>
+                    </div>
+                </div>
+            }
             
             {/* Main Content */}
             <div className="mainContent">

@@ -2,16 +2,8 @@ import './App.css';
 import Sidebar from "./Sidebar.jsx";
 import ChatWindow from "./ChatWindow.jsx";
 import {MyContext} from "./MyContext.jsx";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {v1 as uuidv1} from "uuid";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AuthProvider, AuthContext } from './context/AuthContext';
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import VerifyEmail from './components/auth/VerifyEmail';
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import { useContext } from 'react';
-import axios from 'axios';
 
 function App() {
   const [prompt, setPrompt] = useState("");
@@ -57,72 +49,14 @@ function App() {
     deleteTarget, setDeleteTarget
   };
 
-  // Token handler component to process tokens from URL
-  const TokenHandler = () => {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const { setCurrentUser, setIsAuthenticated } = useContext(AuthContext);
-    
-    useEffect(() => {
-      const params = new URLSearchParams(location.search);
-      const token = params.get('token');
-      
-      if (token) {
-        // Save token to localStorage
-        localStorage.setItem('token', token);
-        
-        // Set default headers
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        // Get user data
-        const fetchUser = async () => {
-          try {
-            const res = await axios.get('http://localhost:8080/api/auth/me');
-            setCurrentUser(res.data.user);
-            setIsAuthenticated(true);
-          } catch (err) {
-            console.error('Error fetching user data:', err);
-          }
-        };
-        
-        fetchUser();
-        
-        // Remove token from URL
-        navigate('/', { replace: true });
-      }
-    }, [location, navigate, setCurrentUser, setIsAuthenticated]);
-    
-    return null;
-  };
-
-  // Main application component with chat interface
-  const MainApp = () => (
+  return (
     <div className='app'>
       <MyContext.Provider value={providerValues}>
-        <Sidebar />
-        <ChatWindow />
-      </MyContext.Provider>
+          <Sidebar></Sidebar>
+          <ChatWindow></ChatWindow>
+        </MyContext.Provider>
     </div>
-  );
-
-  return (
-    <AuthProvider>
-      <Router>
-        <TokenHandler />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/auth/callback" element={<Navigate to="/" />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainApp />
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </Router>
-    </AuthProvider>
-  );
+  )
 }
 
-export default App;
+export default App
