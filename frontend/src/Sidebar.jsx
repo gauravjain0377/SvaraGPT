@@ -125,24 +125,13 @@ function Sidebar() {
       // Ensure we have an array of projects
       setProjects(Array.isArray(data) ? data : []);
       
-      // Save to localStorage for offline access
+      // Save to localStorage for offline access (optional)
       localStorage.setItem('projects', JSON.stringify(Array.isArray(data) ? data : []));
     } catch (err) {
       console.error("Error fetching projects:", err);
       
-      // Try to load from localStorage if API fails
-      const savedProjects = localStorage.getItem('projects');
-      if (savedProjects) {
-        try {
-          const parsedProjects = JSON.parse(savedProjects);
-          setProjects(parsedProjects);
-        } catch (parseError) {
-          console.error('Error parsing saved projects:', parseError);
-          setProjects([]); // Reset to empty array on error
-        }
-      } else {
-        setProjects([]); // Reset to empty array if no localStorage data
-      }
+      // On error, set empty array (don't use localStorage fallback)
+      setProjects([]);
       
       setIsLoading(prev => ({ ...prev, error: 'Failed to load projects' }));
     } finally {
@@ -163,57 +152,35 @@ function Sidebar() {
     // Add error event listener
     window.addEventListener('error', errorHandler);
     
-    // Load projects from localStorage if available
-    const savedProjects = localStorage.getItem('projects');
-    if (savedProjects) {
-      try {
-        const parsedProjects = JSON.parse(savedProjects);
-        setProjects(parsedProjects);
-      } catch (error) {
-        console.error('Error parsing saved projects:', error);
-      }
-    }
-    
-    // Initialize data
+    // Initialize data - fetch from server only (no localStorage fallback)
     const initData = async () => {
       try {
+        // Fetch threads for the authenticated user
         await getAllThreads();
+        
+        // Fetch projects for the authenticated user
         const projectsResponse = await fetch("http://localhost:8080/api/projects", {
           credentials: "include"
         });
+        
         if (projectsResponse.ok) {
           const projectsData = await projectsResponse.json();
           // Check if the response has a data property (from the API structure)
           const projectsArray = projectsData.data || projectsData;
           
-          if (Array.isArray(projectsArray) && projectsArray.length > 0) {
-            setProjects(projectsArray);
-            localStorage.setItem('projects', JSON.stringify(projectsArray));
-          } else {
-            // If no projects from server, keep using localStorage data
-            console.log("No projects found on server");
-            // Initialize with empty array if no localStorage data
-            if (!localStorage.getItem('projects')) {
-              setProjects([]);
-            }
-          }
+          // Set projects from server (empty array for new users)
+          setProjects(Array.isArray(projectsArray) ? projectsArray : []);
+          
+          // Save to localStorage for offline access (optional)
+          localStorage.setItem('projects', JSON.stringify(Array.isArray(projectsArray) ? projectsArray : []));
+        } else {
+          // If server returns error, set empty array (new user or auth issue)
+          setProjects([]);
         }
       } catch (error) {
         console.error('Error initializing data:', error);
-        // Don't set hasError to true for project loading issues
-        // Just use localStorage data if available
-        const savedProjects = localStorage.getItem('projects');
-        if (savedProjects) {
-          try {
-            const parsedProjects = JSON.parse(savedProjects);
-            setProjects(parsedProjects);
-          } catch (parseError) {
-            console.error('Error parsing saved projects:', parseError);
-            setProjects([]);
-          }
-        } else {
-          setProjects([]);
-        }
+        // On error, set empty array (don't use localStorage)
+        setProjects([]);
       }
     };
     

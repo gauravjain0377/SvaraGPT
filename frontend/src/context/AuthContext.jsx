@@ -52,6 +52,13 @@ export const AuthProvider = ({ children }) => {
         }
 
         const data = await response.json();
+        
+        // Clear any previous user's data from localStorage
+        localStorage.removeItem('projects');
+        localStorage.removeItem('threads');
+        localStorage.removeItem('currentProject');
+        localStorage.removeItem('currentThread');
+        
         setUser(data.user);
         return data;
     };
@@ -94,6 +101,13 @@ export const AuthProvider = ({ children }) => {
         }
 
         const data = await response.json();
+        
+        // Clear any previous user's data from localStorage
+        localStorage.removeItem('projects');
+        localStorage.removeItem('threads');
+        localStorage.removeItem('currentProject');
+        localStorage.removeItem('currentThread');
+        
         setUser(data.user);
         return data;
     };
@@ -123,6 +137,12 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
+            // Clear all user-specific data from localStorage
+            localStorage.removeItem('projects');
+            localStorage.removeItem('threads');
+            localStorage.removeItem('currentProject');
+            localStorage.removeItem('currentThread');
+            
             setUser(null);
             window.location.href = "/login";
         }

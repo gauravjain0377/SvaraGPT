@@ -294,14 +294,14 @@ router.post("/projects/move-chat", async (req, res) => {
             );
         }
         
-        // Update thread's project references
+        // Update thread's project references (only if thread exists for this user)
         await Thread.findOneAndUpdate(
             { threadId, userId: req.userId },
             { 
                 $addToSet: { projectIds: targetProjectId },
                 $pull: makeCopy ? {} : { projectIds: sourceProjectId }
             },
-            { upsert: true }
+            { upsert: false }
         );
         
         res.json({
