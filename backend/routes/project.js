@@ -2,15 +2,29 @@ import express from "express";
 import Project from "../models/Project.js";
 import Thread from "../models/Thread.js";
 import { authGuard } from "../middleware/authGuard.js";
+import { guestOrAuthGuard } from "../middleware/guestOrAuthGuard.js";
 
 const router = express.Router();
 
-// Apply auth guard to all routes
-router.use(authGuard);
+// Middleware to block guest users from project operations
+const requireAuth = (req, res, next) => {
+    if (req.isGuest) {
+        return res.status(403).json({ 
+            error: "Authentication required",
+            message: "Please login or register to use projects feature."
+        });
+    }
+    next();
+};
 
-// Get all projects with optional filtering
-router.get("/projects", async (req, res) => {
+// Apply guest or auth guard to GET routes (allow guests to see empty projects)
+router.get("/projects", guestOrAuthGuard, async (req, res) => {
     try {
+        // Guests always get empty array
+        if (req.isGuest) {
+            return res.json({ projects: [], total: 0, page: 1, totalPages: 0 });
+        }
+
         const { includeInactive, search, limit, page } = req.query;
         const query = { userId: req.userId };
         
@@ -38,19 +52,19 @@ router.get("/projects", async (req, res) => {
         ]);
         
         res.json({
-            data: projects,
-            pagination: {
-                total,
-                page: currentPage,
-                pages: Math.ceil(total / pageSize),
-                limit: pageSize
-            }
+            projects,
+            total,
+            page: currentPage,
+            totalPages: Math.ceil(total / pageSize)
         });
     } catch (err) {
         console.error("Error fetching projects:", err);
         res.status(500).json({ error: "Failed to fetch projects" });
     }
 });
+
+// Apply auth guard to all other routes (block guests)
+router.use(authGuard);
 
 // Create project
 router.post("/projects", async (req, res) => {

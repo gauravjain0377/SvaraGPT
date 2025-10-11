@@ -7,6 +7,7 @@ import session from "express-session";
 import chatRoutes from "./routes/chat.js";
 import projectRoutes from "./routes/project.js";
 import authRoutes from "./routes/auth.js";
+import migrateRoutes from "./routes/migrate.js";
 import passportConfig from "./config/passport.js";
 
 const app = express();
@@ -34,6 +35,7 @@ app.use(passportConfig.session());
 app.use("/auth", authRoutes);
 app.use("/api", chatRoutes);
 app.use("/api", projectRoutes);
+app.use("/api/migrate", migrateRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);

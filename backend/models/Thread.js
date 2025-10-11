@@ -28,8 +28,7 @@ const ThreadSchema = new mongoose.Schema({
         // Removed duplicate index: true since unique already creates an index
     },
     userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        type: mongoose.Schema.Types.Mixed, // Supports both ObjectId (authenticated users) and String (guest users)
         required: true,
         index: true
     },

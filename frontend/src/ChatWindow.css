@@ -277,3 +277,171 @@
     background-color: #404040;
     margin: 4px 0;
 }
+
+.dropdownItem.secondary {
+    font-size: 12px;
+    color: #888;
+    padding: 4px 12px;
+    cursor: default;
+}
+
+.dropdownItem.secondary:hover {
+    background-color: transparent;
+}
+
+.dropdownItem.clickable {
+    cursor: pointer;
+}
+
+.dropdownItem.clickable:hover {
+    background-color: #404040;
+}
+
+/* Guest Counter */
+.guestCounter {
+    display: flex;
+    align-items: center;
+    background-color: #2a2a2a;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #404040;
+}
+
+.guestCounterText {
+    font-size: 13px;
+    color: #ff6b35;
+    font-weight: 500;
+}
+
+/* Guest Limit Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.modal {
+    background-color: #2a2a2a;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid #404040;
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #404040;
+}
+
+.modalHeader h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #ececec;
+    margin: 0;
+}
+
+.closeBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background-color: transparent;
+    color: #b4b4b4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 18px;
+}
+
+.closeBtn:hover {
+    background-color: #404040;
+    color: #ececec;
+}
+
+.modalBody {
+    padding: 32px 24px;
+    text-align: center;
+}
+
+.limitIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 28px;
+    color: white;
+}
+
+.limitMessage {
+    font-size: 16px;
+    color: #ececec;
+    margin: 0 0 12px 0;
+    font-weight: 500;
+}
+
+.limitSubtext {
+    font-size: 14px;
+    color: #b4b4b4;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.modalActions {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid #404040;
+}
+
+.primaryBtn {
+    flex: 1;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.primaryBtn:hover {
+    transform: translateY(-1px);
+}
+
+.secondaryBtn {
+    flex: 1;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: 1px solid #404040;
+    background-color: transparent;
+    color: #ececec;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.secondaryBtn:hover {
+    background-color: #404040;
+    border-color: #555;
+}

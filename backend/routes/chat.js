@@ -3,12 +3,12 @@ import Thread from "../models/Thread.js";
 import { GoogleGenAI } from "@google/genai";
 import getGeminiResponse from "../utils/gemini.js";
 import getGitHubModelsResponse from "../utils/githubModels.js";
-import { authGuard } from "../middleware/authGuard.js";
+import { guestOrAuthGuard, checkGuestLimit } from "../middleware/guestOrAuthGuard.js";
 
 const router = express.Router();
 
-// Apply auth guard to all routes
-router.use(authGuard);
+// Apply guest or auth guard to all routes (allows both authenticated and guest users)
+router.use(guestOrAuthGuard);
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
@@ -45,6 +45,32 @@ async function getFastestResponse(message) {
 //     }
 // });
 
+
+// Get guest usage info
+router.get("/guest-usage", async (req, res) => {
+    try {
+        if (!req.isGuest) {
+            return res.json({ isGuest: false, promptsUsed: 0, promptsRemaining: Infinity });
+        }
+
+        const threads = await Thread.find({ userId: req.userId });
+        let totalPrompts = 0;
+        threads.forEach(thread => {
+            const userMessages = thread.messages.filter(msg => msg.role === 'user');
+            totalPrompts += userMessages.length;
+        });
+
+        res.json({
+            isGuest: true,
+            promptsUsed: totalPrompts,
+            promptsRemaining: Math.max(0, 3 - totalPrompts),
+            limitReached: totalPrompts >= 3
+        });
+    } catch (err) {
+        console.error("Error fetching guest usage:", err);
+        res.status(500).json({ error: "Failed to fetch usage info" });
+    }
+});
 
 // Get all threads
 router.get("/thread", async (req, res) => {
@@ -113,8 +139,8 @@ router.delete("/thread/:threadId", async (req, res) => {
     }
 });
 
-// Chat endpoint
-router.post("/chat", async (req, res) => {
+// Chat endpoint (with guest limit check)
+router.post("/chat", checkGuestLimit, async (req, res) => {
     const { threadId, message, projectId } = req.body;
 
     if (!threadId || !message) {

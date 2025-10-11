@@ -2,6 +2,8 @@ import "./ChatWindow.css";
 import Chat from "./Chat.jsx";
 import { MyContext } from "./MyContext.jsx";
 import { useContext, useState, useEffect } from "react";
+import { useAuth } from "./context/AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
 import {ScaleLoader} from "react-spinners";
 
 function ChatWindow() {
@@ -9,8 +11,36 @@ function ChatWindow() {
         prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
         currentProject, projects, setProjects, allThreads, setAllThreads, prevChats
     } = useContext(MyContext);
+    const { user, logout, getGuestUsage } = useAuth();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [guestUsage, setGuestUsage] = useState(null);
+    const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
+
+    // Fetch guest usage on mount and after each message (if guest)
+    useEffect(() => {
+        const fetchGuestUsage = async () => {
+            if (!user) {
+                const usage = await getGuestUsage();
+                setGuestUsage(usage);
+            }
+        };
+        fetchGuestUsage();
+    }, [user, prevChats]);
+
+    // Get user initials for avatar
+    const getUserInitials = () => {
+        if (!user) return "G"; // Guest
+        if (user.name) {
+            const names = user.name.split(" ");
+            if (names.length >= 2) {
+                return names[0].charAt(0).toUpperCase() + names[1].charAt(0).toUpperCase();
+            }
+            return user.name.charAt(0).toUpperCase();
+        }
+        return user.email.charAt(0).toUpperCase();
+    };
 
     const getReply = async () => {
         if(!prompt.trim()) return;
@@ -62,6 +92,19 @@ function ChatWindow() {
 
         try {
             const response = await fetch("http://localhost:8080/api/chat", options);
+            
+            // Check if guest limit reached
+            if (response.status === 403) {
+                const errorData = await response.json();
+                if (errorData.error && errorData.error.includes("Guest limit")) {
+                    setShowGuestLimitModal(true);
+                    // Remove the loading message
+                    setPrevChats(prev => prev.slice(0, -2));
+                    setLoading(false);
+                    return;
+                }
+            }
+            
             const res = await response.json();
             setReply(res.reply);
 
@@ -120,37 +163,73 @@ function ChatWindow() {
                     <div className="brandSection">
                         <div className="brandIcon">⚡</div>
                         <span className="brandName">SvaraGPT</span>
-                        
                     </div>
                     <div className="headerActions">
+                        {/* Guest Usage Counter */}
+                        {!user && guestUsage && (
+                            <div className="guestCounter">
+                                <span className="guestCounterText">
+                                    {guestUsage.promptCount}/{guestUsage.limit} prompts
+                                </span>
+                            </div>
+                        )}
                         
                         <div className="userProfile" onClick={handleProfileClick}>
-                            <div className="userAvatar">GJ</div>
+                            <div className="userAvatar">{getUserInitials()}</div>
                         </div>
                     </div>
                 </div>
             </div>
             
             {/* Profile Dropdown */}
-            {
-                isOpen && 
+            {isOpen && (
                 <div className="profileDropdown">
-                    <div className="dropdownItem">
-                        <i className="fa-solid fa-user"></i>
-                        <span>Gaurav Jain</span>
-                    </div>
-                    <div className="dropdownSeparator"></div>
-                    <div className="dropdownItem">
-                        <i className="fa-solid fa-gear"></i>
-                        <span>Settings</span>
-                    </div>
-                    <div className="dropdownSeparator"></div>
-                    <div className="dropdownItem">
-                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
-                        <span>Log out</span>
-                    </div>
+                    {user ? (
+                        <>
+                            <div className="dropdownItem">
+                                <i className="fa-solid fa-user"></i>
+                                <span>{user.name || user.email}</span>
+                            </div>
+                            {user.email && user.name && (
+                                <div className="dropdownItem secondary">
+                                    <span>{user.email}</span>
+                                </div>
+                            )}
+                            <div className="dropdownSeparator"></div>
+                            <div className="dropdownItem clickable">
+                                <i className="fa-solid fa-gear"></i>
+                                <span>Settings</span>
+                            </div>
+                            <div className="dropdownSeparator"></div>
+                            <div className="dropdownItem clickable" onClick={logout}>
+                                <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                                <span>Log out</span>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="dropdownItem">
+                                <i className="fa-solid fa-user-secret"></i>
+                                <span>Guest User</span>
+                            </div>
+                            {guestUsage && (
+                                <div className="dropdownItem secondary">
+                                    <span>{guestUsage.promptCount}/{guestUsage.limit} prompts used</span>
+                                </div>
+                            )}
+                            <div className="dropdownSeparator"></div>
+                            <div className="dropdownItem clickable" onClick={() => navigate('/login')}>
+                                <i className="fa-solid fa-right-to-bracket"></i>
+                                <span>Log in</span>
+                            </div>
+                            <div className="dropdownItem clickable" onClick={() => navigate('/register')}>
+                                <i className="fa-solid fa-user-plus"></i>
+                                <span>Sign up</span>
+                            </div>
+                        </>
+                    )}
                 </div>
-            }
+            )}
             
             {/* Main Content */}
             <div className="mainContent">
@@ -186,6 +265,48 @@ function ChatWindow() {
                     SvaraGPT can make mistakes. Check important info.
                 </div>
             </div>
+
+            {/* Guest Limit Modal */}
+            {showGuestLimitModal && (
+                <div className="modalOverlay" onClick={() => setShowGuestLimitModal(false)}>
+                    <div className="modal guestLimitModal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modalHeader">
+                            <h2>Guest Limit Reached</h2>
+                            <button 
+                                className="closeBtn" 
+                                onClick={() => setShowGuestLimitModal(false)}
+                            >
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div className="modalBody">
+                            <div className="limitIcon">
+                                <i className="fa-solid fa-lock"></i>
+                            </div>
+                            <p className="limitMessage">
+                                You've reached the limit of 3 prompts as a guest user.
+                            </p>
+                            <p className="limitSubtext">
+                                Create a free account to continue chatting and unlock additional features like project management!
+                            </p>
+                        </div>
+                        <div className="modalActions">
+                            <button 
+                                className="primaryBtn"
+                                onClick={() => navigate('/register')}
+                            >
+                                Sign Up Free
+                            </button>
+                            <button 
+                                className="secondaryBtn"
+                                onClick={() => navigate('/login')}
+                            >
+                                Log In
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

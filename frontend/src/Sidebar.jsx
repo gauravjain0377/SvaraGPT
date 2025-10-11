@@ -36,7 +36,7 @@ function Sidebar() {
     setActiveDropdown,
   } = useContext(MyContext);
 
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const [activeSection, setActiveSection] = useState("chats");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1052,23 +1052,6 @@ function Sidebar() {
         </div>
       )}
 
-      {/* User Profile Section */}
-      {user && (
-        <div className="userProfile">
-          <div className="userInfo">
-            <div className="userAvatar">
-              {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-            </div>
-            <div className="userDetails">
-              <div className="userName">{user.name || 'User'}</div>
-              <div className="userEmail">{user.email}</div>
-            </div>
-          </div>
-          <button className="logoutBtn" onClick={logout} title="Logout">
-            <i className="fa-solid fa-right-from-bracket"></i>
-          </button>
-        </div>
-      )}
     </section>
   );
 }

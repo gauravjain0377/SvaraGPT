@@ -13,6 +13,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [guestId, setGuestId] = useState(null);
 
     const checkAuth = async () => {
         try {
@@ -34,6 +35,42 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Get guest usage info
+    const getGuestUsage = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/api/guest-usage", {
+                credentials: "include",
+            });
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error("Failed to fetch guest usage:", error);
+        }
+        return null;
+    };
+
+    // Migrate guest data to authenticated user
+    const migrateGuestData = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/api/migrate/guest-data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({}),
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log("✅ Guest data migrated:", data);
+                return data;
+            }
+        } catch (error) {
+            console.error("❌ Failed to migrate guest data:", error);
+        }
+        return null;
+    };
+
     useEffect(() => {
         checkAuth();
     }, []);
@@ -52,6 +89,9 @@ export const AuthProvider = ({ children }) => {
         }
 
         const data = await response.json();
+        
+        // Migrate guest data automatically (backend reads from cookie)
+        await migrateGuestData();
         
         // Clear any previous user's data from localStorage
         localStorage.removeItem('projects');
@@ -144,7 +184,8 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('currentThread');
             
             setUser(null);
-            window.location.href = "/login";
+            // Redirect to home page (guest mode) instead of login
+            window.location.href = "/home";
         }
     };
 
@@ -162,6 +203,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         loginWithGoogle,
         checkAuth,
+        getGuestUsage,
+        migrateGuestData,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

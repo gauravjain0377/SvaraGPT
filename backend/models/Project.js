@@ -10,7 +10,7 @@ const ProjectChatSchema = new mongoose.Schema({
 
 const ProjectSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    userId: { type: mongoose.Schema.Types.Mixed, required: true, index: true }, // Supports both ObjectId (authenticated users) and String (guest users)
     name: { type: String, required: true },
     description: { type: String, default: "" },
     chats: { type: [ProjectChatSchema], default: [] },
