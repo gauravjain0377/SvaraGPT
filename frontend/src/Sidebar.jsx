@@ -1,6 +1,7 @@
 import "./Sidebar.css";
 import { useContext, useEffect, useState } from "react";
 import { MyContext } from "./MyContext.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
 import { v1 as uuidv1 } from "uuid";
 
 function Sidebar() {
@@ -35,6 +36,8 @@ function Sidebar() {
     setActiveDropdown,
   } = useContext(MyContext);
 
+  const { user, logout } = useAuth();
+
   const [activeSection, setActiveSection] = useState("chats");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -52,7 +55,9 @@ function Sidebar() {
     setIsLoading(prev => ({ ...prev, threads: true, error: null }));
     
     try {
-      const response = await fetch("http://localhost:8080/api/thread");
+      const response = await fetch("http://localhost:8080/api/thread", {
+        credentials: "include"
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -106,7 +111,9 @@ function Sidebar() {
     setIsLoading(prev => ({ ...prev, projects: true, error: null }));
     
     try {
-      const response = await fetch("http://localhost:8080/api/projects");
+      const response = await fetch("http://localhost:8080/api/projects", {
+        credentials: "include"
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -171,7 +178,9 @@ function Sidebar() {
     const initData = async () => {
       try {
         await getAllThreads();
-        const projectsResponse = await fetch("http://localhost:8080/api/projects");
+        const projectsResponse = await fetch("http://localhost:8080/api/projects", {
+          credentials: "include"
+        });
         if (projectsResponse.ok) {
           const projectsData = await projectsResponse.json();
           // Check if the response has a data property (from the API structure)
@@ -261,7 +270,8 @@ function Sidebar() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/thread/${newThreadId}`
+        `http://localhost:8080/api/thread/${newThreadId}`,
+        { credentials: "include" }
       );
       const res = await response.json();
       console.log(res);
@@ -283,7 +293,10 @@ function Sidebar() {
       // Delete the thread from MongoDB
       const response = await fetch(
         `http://localhost:8080/api/thread/${threadId}`,
-        { method: "DELETE" }
+        { 
+          method: "DELETE",
+          credentials: "include"
+        }
       );
       const res = await response.json();
       console.log(res);
@@ -311,7 +324,8 @@ function Sidebar() {
       try {
         // The correct endpoint format based on the backend route
         await fetch(`http://localhost:8080/api/projects/all/chats/${threadId}?removeFromAll=true`, {
-          method: "DELETE"
+          method: "DELETE",
+          credentials: "include"
         });
       } catch (projectErr) {
         console.error("Error removing chat from projects:", projectErr);
@@ -339,6 +353,7 @@ function Sidebar() {
       await fetch("http://localhost:8080/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ id: newProject.id, name: newProject.name }),
       });
       setProjects((prev) => {
@@ -365,6 +380,7 @@ function Sidebar() {
       await fetch(`http://localhost:8080/api/projects/${projectId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ name: newName }),
       });
       setProjects((prev) => {
@@ -393,6 +409,7 @@ function Sidebar() {
       // Use hardDelete=true to ensure it's removed from MongoDB
       await fetch(`http://localhost:8080/api/projects/${projectId}?hardDelete=true`, {
         method: "DELETE",
+        credentials: "include",
       });
       setProjects((prev) => {
         const updatedProjects = prev.filter((p) => p.id !== projectId);
@@ -451,6 +468,7 @@ function Sidebar() {
       try {
         await fetch(`http://localhost:8080/api/projects/${prevProject.id}/chats/${threadId}`, {
           method: "DELETE",
+          credentials: "include",
         });
       } catch (err) {
         console.log(err);
@@ -474,6 +492,7 @@ function Sidebar() {
         await fetch(`http://localhost:8080/api/projects/${projectId}/chats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ threadId: foundThread.threadId, title: foundThread.title }),
         });
       } catch (err) {
@@ -508,6 +527,7 @@ function Sidebar() {
       await fetch(`http://localhost:8080/api/thread/${threadId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ title: newTitle }),
       });
     } catch (err) {
@@ -521,6 +541,7 @@ function Sidebar() {
         await fetch(`http://localhost:8080/api/projects/${projectWithChat.id}/chats/${threadId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ title: newTitle }),
         });
       } catch (err) {
@@ -1061,6 +1082,24 @@ function Sidebar() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* User Profile Section */}
+      {user && (
+        <div className="userProfile">
+          <div className="userInfo">
+            <div className="userAvatar">
+              {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+            </div>
+            <div className="userDetails">
+              <div className="userName">{user.name || 'User'}</div>
+              <div className="userEmail">{user.email}</div>
+            </div>
+          </div>
+          <button className="logoutBtn" onClick={logout} title="Logout">
+            <i className="fa-solid fa-right-from-bracket"></i>
+          </button>
         </div>
       )}
     </section>

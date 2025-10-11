@@ -1,14 +1,18 @@
 import express from "express";
 import Project from "../models/Project.js";
 import Thread from "../models/Thread.js";
+import { authGuard } from "../middleware/authGuard.js";
 
 const router = express.Router();
+
+// Apply auth guard to all routes
+router.use(authGuard);
 
 // Get all projects with optional filtering
 router.get("/projects", async (req, res) => {
     try {
         const { includeInactive, search, limit, page } = req.query;
-        const query = {};
+        const query = { userId: req.userId };
         
         // Filter by active status
         if (includeInactive !== 'true') {
@@ -55,7 +59,8 @@ router.post("/projects", async (req, res) => {
     
     try {
         const project = new Project({ 
-            id, 
+            id,
+            userId: req.userId,
             name, 
             description,
             createdAt: new Date(),
@@ -76,7 +81,7 @@ router.post("/projects", async (req, res) => {
 // Get project by ID
 router.get("/projects/:id", async (req, res) => {
     try {
-        const project = await Project.findOne({ id: req.params.id });
+        const project = await Project.findOne({ id: req.params.id, userId: req.userId });
         if (!project) return res.status(404).json({ error: "Project not found" });
         res.json(project);
     } catch (err) {
@@ -97,7 +102,7 @@ router.put("/projects/:id", async (req, res) => {
         if (isActive !== undefined) update.isActive = isActive;
         
         const updated = await Project.findOneAndUpdate(
-            { id },
+            { id, userId: req.userId },
             { $set: update },
             { new: true, runValidators: true }
         );
@@ -122,11 +127,11 @@ router.delete("/projects/:id", async (req, res) => {
         let result;
         if (hardDelete === 'true') {
             // Hard delete (permanent removal)
-            result = await Project.findOneAndDelete({ id });
+            result = await Project.findOneAndDelete({ id, userId: req.userId });
         } else {
             // Soft delete (mark as inactive)
             result = await Project.findOneAndUpdate(
-                { id },
+                { id, userId: req.userId },
                 { isActive: false, updatedAt: new Date() },
                 { new: true }
             );
@@ -160,6 +165,7 @@ router.post("/projects/:id/chats", async (req, res) => {
     try {
         // Check if chat already exists in any project
         const existingChat = await Project.findOne({
+            userId: req.userId,
             "chats.threadId": threadId,
             id: { $ne: id }
         });
@@ -172,6 +178,7 @@ router.post("/projects/:id/chats", async (req, res) => {
 
         // Check if chat exists in this project
         const existingInThisProject = await Project.findOne({
+            userId: req.userId,
             id: id,
             "chats.threadId": threadId
         });
@@ -181,7 +188,7 @@ router.post("/projects/:id/chats", async (req, res) => {
         if (existingInThisProject) {
             // Update existing chat
             updated = await Project.findOneAndUpdate(
-                { id: id, "chats.threadId": threadId },
+                { id: id, userId: req.userId, "chats.threadId": threadId },
                 { 
                     $set: { 
                         "chats.$": { 
@@ -199,7 +206,7 @@ router.post("/projects/:id/chats", async (req, res) => {
         } else {
             // Add new chat
             updated = await Project.findOneAndUpdate(
-                { id: id },
+                { id: id, userId: req.userId },
                 { 
                     $push: { 
                         chats: { 
@@ -220,9 +227,9 @@ router.post("/projects/:id/chats", async (req, res) => {
         
         // Update the thread's project reference if needed
         await Thread.findOneAndUpdate(
-            { threadId },
+            { threadId, userId: req.userId },
             { $addToSet: { projectIds: id } },
-            { upsert: true }
+            { upsert: false }
         );
         
         res.json(updated);
@@ -242,14 +249,14 @@ router.post("/projects/move-chat", async (req, res) => {
     
     try {
         // Get the chat details from source project
-        const sourceProject = await Project.findOne({ id: sourceProjectId });
+        const sourceProject = await Project.findOne({ id: sourceProjectId, userId: req.userId });
         if (!sourceProject) return res.status(404).json({ error: "Source project not found" });
         
         const chatToMove = sourceProject.chats.find(chat => chat.threadId === threadId);
         if (!chatToMove) return res.status(404).json({ error: "Chat not found in source project" });
         
         // Check if target project exists
-        const targetProject = await Project.findOne({ id: targetProjectId });
+        const targetProject = await Project.findOne({ id: targetProjectId, userId: req.userId });
         if (!targetProject) return res.status(404).json({ error: "Target project not found" });
         
         // Check if chat already exists in target project
@@ -261,7 +268,7 @@ router.post("/projects/move-chat", async (req, res) => {
         
         // Add chat to target project
         const updatedTarget = await Project.findOneAndUpdate(
-            { id: targetProjectId },
+            { id: targetProjectId, userId: req.userId },
             { 
                 $push: { 
                     chats: { 
@@ -279,7 +286,7 @@ router.post("/projects/move-chat", async (req, res) => {
         // If not making a copy, remove from source project
         if (!makeCopy) {
             await Project.findOneAndUpdate(
-                { id: sourceProjectId },
+                { id: sourceProjectId, userId: req.userId },
                 { 
                     $pull: { chats: { threadId } },
                     $set: { updatedAt: new Date() }
@@ -289,7 +296,7 @@ router.post("/projects/move-chat", async (req, res) => {
         
         // Update thread's project references
         await Thread.findOneAndUpdate(
-            { threadId },
+            { threadId, userId: req.userId },
             { 
                 $addToSet: { projectIds: targetProjectId },
                 $pull: makeCopy ? {} : { projectIds: sourceProjectId }
@@ -316,7 +323,7 @@ router.delete("/projects/all/chats/:threadId", async (req, res) => {
     try {
         // Remove chat from all projects
         await Project.updateMany(
-            {},
+            { userId: req.userId },
             { 
                 $pull: { chats: { threadId } },
                 $set: { updatedAt: new Date() }
@@ -337,7 +344,7 @@ router.delete("/projects/:id/chats/:threadId", async (req, res) => {
     
     try {
         // Verify the thread exists before removing
-        const thread = await Thread.findOne({ threadId });
+        const thread = await Thread.findOne({ threadId, userId: req.userId });
         if (!thread) {
             return res.status(404).json({ error: "Thread not found" });
         }
@@ -345,7 +352,7 @@ router.delete("/projects/:id/chats/:threadId", async (req, res) => {
         if (removeFromAll === 'true') {
             // Remove chat from all projects
             await Project.updateMany(
-                {},
+                { userId: req.userId },
                 { 
                     $pull: { chats: { threadId } },
                     $set: { updatedAt: new Date() }
@@ -354,13 +361,13 @@ router.delete("/projects/:id/chats/:threadId", async (req, res) => {
             
             // Remove project references from thread
             await Thread.findOneAndUpdate(
-                { threadId },
+                { threadId, userId: req.userId },
                 { $set: { projectIds: [] } }
             );
         } else {
             // Remove chat from specific project only
             await Project.findOneAndUpdate(
-                { id: id },
+                { id: id, userId: req.userId },
                 { 
                     $pull: { chats: { threadId } },
                     $set: { updatedAt: new Date() }
@@ -369,7 +376,7 @@ router.delete("/projects/:id/chats/:threadId", async (req, res) => {
             
             // Remove project reference from thread
             await Thread.findOneAndUpdate(
-                { threadId },
+                { threadId, userId: req.userId },
                 { $pull: { projectIds: id } }
             );
         }
@@ -396,7 +403,7 @@ router.put("/projects/:id/chats/:threadId", async (req, res) => {
         if (isShared !== undefined) update["chats.$.isShared"] = isShared;
         
         const updated = await Project.findOneAndUpdate(
-            { id: id, "chats.threadId": threadId },
+            { id: id, userId: req.userId, "chats.threadId": threadId },
             { $set: update },
             { new: true }
         );
@@ -422,8 +429,8 @@ router.get("/projects/chats/search", async (req, res) => {
         }
         
         const searchQuery = projectId 
-            ? { id: projectId, isActive: true }
-            : { isActive: true };
+            ? { id: projectId, userId: req.userId, isActive: true }
+            : { userId: req.userId, isActive: true };
         
         // First, find projects with matching names or chat titles
         const projects = await Project.find({

@@ -41,6 +41,7 @@ function ChatWindow() {
                 fetch(`http://localhost:8080/api/projects/${currentProject}/chats`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    credentials: "include",
                     body: JSON.stringify({ threadId: newThread.threadId, title: newThread.title })
                 }).catch(err => console.log(err));
             } else {
@@ -52,6 +53,7 @@ function ChatWindow() {
         const options = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ message: prompt, threadId: currThreadId })
         };
 

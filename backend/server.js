@@ -2,27 +2,48 @@ import express from "express";
 import "dotenv/config";
 import cors from "cors";
 import mongoose from "mongoose";
+import cookieParser from "cookie-parser";
+import session from "express-session";
 import chatRoutes from "./routes/chat.js";
 import projectRoutes from "./routes/project.js";
+import authRoutes from "./routes/auth.js";
+import passportConfig from "./config/passport.js";
 
 const app = express();
 const PORT = 8080;
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
+app.use(cookieParser());
+app.use(session({
+    secret: process.env.SESSION_SECRET || "your-session-secret-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000
+    }
+}));
+app.use(passportConfig.initialize());
+app.use(passportConfig.session());
 
+app.use("/auth", authRoutes);
 app.use("/api", chatRoutes);
 app.use("/api", projectRoutes);
 
 app.listen(PORT, () => {
-    console.log(`server running on ${PORT}`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
     connectDB();
 });
 
 const connectDB = async() => {
     try {
-        await mongoose.connect(process.env.MONGO_URL, {
-            dbName: process.env.MONGO_DB_NAME || "SvaraGPT_Database"
+        await mongoose.connect(process.env.MONGODB_URL, {
+            dbName: process.env.MONGODB_DB_NAME || "SvaraGPT_Database"
         });
         console.log("Connected with Database!");
     } catch(err) {

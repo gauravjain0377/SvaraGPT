@@ -3,8 +3,12 @@ import Thread from "../models/Thread.js";
 import { GoogleGenAI } from "@google/genai";
 import getGeminiResponse from "../utils/gemini.js";
 import getGitHubModelsResponse from "../utils/githubModels.js";
+import { authGuard } from "../middleware/authGuard.js";
 
 const router = express.Router();
+
+// Apply auth guard to all routes
+router.use(authGuard);
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
@@ -45,7 +49,7 @@ async function getFastestResponse(message) {
 // Get all threads
 router.get("/thread", async (req, res) => {
     try {
-        const threads = await Thread.find({}).sort({ updatedAt: -1 });  // most recent chat on the top
+        const threads = await Thread.find({ userId: req.userId }).sort({ updatedAt: -1 });  // most recent chat on the top
         res.json(threads);
     } catch (err) {
         console.log(err);
@@ -58,7 +62,7 @@ router.get("/thread/:threadId", async (req, res) => {
     const { threadId } = req.params;
 
     try {
-        const thread = await Thread.findOne({ threadId });
+        const thread = await Thread.findOne({ threadId, userId: req.userId });
 
         if (!thread) {
             return res.status(404).json({ error: "Thread not found" });
@@ -79,7 +83,7 @@ router.put("/thread/:threadId", async (req, res) => {
 
     try {
         const updated = await Thread.findOneAndUpdate(
-            { threadId },
+            { threadId, userId: req.userId },
             { title, updatedAt: new Date() },
             { new: true }
         );
@@ -96,7 +100,7 @@ router.delete("/thread/:threadId", async (req, res) => {
     const { threadId } = req.params;
 
     try {
-        const deletedThread = await Thread.findOneAndDelete({ threadId });
+        const deletedThread = await Thread.findOneAndDelete({ threadId, userId: req.userId });
 
         if (!deletedThread) {
             return res.status(404).json({ error: "Thread not found" });
@@ -121,10 +125,11 @@ router.post("/chat", async (req, res) => {
         // Use findOneAndUpdate with upsert to prevent race conditions
         // This will either find an existing thread or create a new one atomically
         const thread = await Thread.findOneAndUpdate(
-            { threadId },
+            { threadId, userId: req.userId },
             { 
                 $setOnInsert: {
                     threadId,
+                    userId: req.userId,
                     title: message.substring(0, 100), // Limit title length
                     createdAt: new Date()
                 },

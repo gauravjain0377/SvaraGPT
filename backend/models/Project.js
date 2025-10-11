@@ -10,6 +10,7 @@ const ProjectChatSchema = new mongoose.Schema({
 
 const ProjectSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     name: { type: String, required: true },
     description: { type: String, default: "" },
     chats: { type: [ProjectChatSchema], default: [] },
