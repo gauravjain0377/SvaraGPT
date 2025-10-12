@@ -1,21 +1,33 @@
 .auth-container {
     min-height: 100vh;
+    background: #000000;
+    padding: 20px;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #000000;
-    padding: 20px;
 }
 
-.auth-card {
-    background: #1a1a1a;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    border: 1px solid #333333;
-    padding: 40px;
-    width: 100%;
+.close-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-button:hover {
+    color: #cccccc;
+}
+
+.auth-content {
     max-width: 450px;
-    animation: slideUp 0.4s ease-out;
+    width: 100%;
+    margin: 0 auto;
 }
 
 @keyframes slideUp {
@@ -74,8 +86,14 @@
     color: #ffffff;
 }
 
-.form-group input {
-    padding: 12px 16px;
+.input-group {
+    position: relative;
+    margin-bottom: 0;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
     border: 1px solid #555555;
     border-radius: 8px;
     font-size: 15px;
@@ -83,6 +101,38 @@
     outline: none;
     background: #2a2a2a;
     color: #ffffff;
+    box-sizing: border-box;
+}
+
+.input-group .toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #cccccc;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.input-group .toggle-password:hover {
+    color: #ffffff;
+}
+
+.form-group input:not(.input-group input) {
+    padding: 12px 16px;
+    width: 100%;
+    border: 1px solid #555555;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.2s;
+    outline: none;
+    background: #2a2a2a;
+    color: #ffffff;
+    box-sizing: border-box;
 }
 
 .form-group input:focus {
@@ -98,6 +148,30 @@
 
 .form-group input::placeholder {
     color: #888888;
+}
+
+.form-group {
+    position: relative;
+}
+
+.eye-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #888888;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.eye-icon:hover {
+    color: #cccccc;
 }
 
 .verification-input {
@@ -176,6 +250,8 @@
     color: #ffffff;
     cursor: pointer;
     transition: all 0.2s;
+    margin: 0 auto;
+    width: fit-content;
 }
 
 .google-button:hover:not(:disabled) {
