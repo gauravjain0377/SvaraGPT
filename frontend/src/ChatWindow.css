@@ -37,8 +37,10 @@
 }
 
 .brandIcon {
-    font-size: 20px;
-    color: #ff6b35;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
 }
 
 .brandName {
@@ -299,20 +301,22 @@
 
 /* Login Button */
 .loginBtn {
-    background-color: #2a2a2a;
-    color: #ececec;
-    border: 1px solid #404040;
+    background-color: #007bff;
+    color: #ffffff;
+    border: 1px solid #007bff;
     padding: 8px 20px;
     border-radius: 20px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .loginBtn:hover {
-    background-color: #333;
-    border-color: #505050;
+    background-color: #0056b3;
+    border-color: #0056b3;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 /* ============================================

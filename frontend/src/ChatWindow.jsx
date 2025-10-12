@@ -5,6 +5,7 @@ import { useContext, useState, useEffect } from "react";
 import { useAuth } from "./context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 import {ScaleLoader} from "react-spinners";
+import logo3 from "./assets/logo3.png";
 
 function ChatWindow() {
     const {
@@ -156,7 +157,7 @@ function ChatWindow() {
             <div className="header">
                 <div className="headerContent">
                     <div className="brandSection">
-                        <div className="brandIcon">⚡</div>
+                        <img src={logo3} alt="SvaraGPT Logo" className="brandIcon" />
                         <span className="brandName">SvaraGPT</span>
                     </div>
                     <div className="headerActions">

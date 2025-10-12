@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
+import logo3 from "../../assets/logo3.png";
 
 const Login = () => {
     const [email, setEmail] = useState("");
@@ -34,6 +35,9 @@ const Login = () => {
             </button>
             <div className="auth-content">
                 <div className="auth-header">
+                    <div className="auth-logo">
+                        <img src={logo3} alt="SvaraGPT Logo" />
+                    </div>
                     <h1>Welcome Back</h1>
                     <p>Sign in to continue to SvaraGPT</p>
                 </div>

@@ -4,6 +4,7 @@ import { MyContext } from "./MyContext";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
+import logo3 from "./assets/logo3.png";
 
 
 // react-markdown
@@ -48,7 +49,9 @@ function Chat() {
                 <div className="welcomeScreen">
                     <div className="welcomeContent">
                         <div className="welcomeHeader">
-                            <div className="welcomeIcon">⚡</div>
+                            <div className="welcomeIcon">
+                                <img src={logo3} alt="SvaraGPT Logo" />
+                            </div>
                             <h1 className="welcomeTitle">SvaraGPT</h1>
                             <p className="welcomeSubtitle">How can I help you today?</p>
                         </div>
@@ -82,7 +85,9 @@ function Chat() {
                                         {isUser ? (
                                             <div className="userAvatar">GJ</div>
                                         ) : (
-                                            <div className="assistantAvatar">⚡</div>
+                                            <div className="assistantAvatar">
+                                                <img src={logo3} alt="SvaraGPT Logo" />
+                                            </div>
                                         )}
                                     </div>
                                     <div className="messageText">

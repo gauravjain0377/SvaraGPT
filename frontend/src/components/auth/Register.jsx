@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
+import logo3 from "../../assets/logo3.png";
 
 const Register = () => {
     const [name, setName] = useState("");
@@ -83,6 +84,9 @@ const Register = () => {
                 </button>
                 <div className="auth-content">
                     <div className="auth-header">
+                        <div className="auth-logo">
+                            <img src={logo3} alt="SvaraGPT Logo" />
+                        </div>
                         <h1>Verify Your Email</h1>
                         <p>We've sent a 6-digit code to {email}</p>
                     </div>
@@ -135,6 +139,9 @@ const Register = () => {
             </button>
             <div className="auth-content">
                 <div className="auth-header">
+                    <div className="auth-logo">
+                        <img src={logo3} alt="SvaraGPT Logo" />
+                    </div>
                     <h1>Create Account</h1>
                     <p>Sign up to get started with SvaraGPT</p>
                 </div>

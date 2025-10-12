@@ -291,13 +291,14 @@
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    background: #2a2a2a;
+    border: 2px solid #007bff;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 20px;
     font-size: 28px;
-    color: white;
+    color: #007bff;
 }
 
 .loginPromptTitle {
@@ -315,7 +316,7 @@
 }
 
 .loginPromptBtn {
-    background-color: #ff6b35;
+    background-color: #007bff;
     color: white;
     border: none;
     padding: 10px 24px;
@@ -327,8 +328,9 @@
 }
 
 .loginPromptBtn:hover {
-    background-color: #e55a2b;
+    background-color: #0056b3;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
 .projectItem {
