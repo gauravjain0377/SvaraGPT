@@ -276,6 +276,61 @@
     margin-top: 8px;
 }
 
+/* Login Prompt */
+.loginPrompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.loginPromptIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+    color: white;
+}
+
+.loginPromptTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ececec;
+    margin: 0 0 12px 0;
+}
+
+.loginPromptText {
+    font-size: 14px;
+    color: #b4b4b4;
+    line-height: 1.5;
+    margin: 0 0 24px 0;
+}
+
+.loginPromptBtn {
+    background-color: #ff6b35;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.loginPromptBtn:hover {
+    background-color: #e55a2b;
+    transform: translateY(-1px);
+}
+
 .projectItem {
     margin-bottom: 8px;
     border: 1px solid #333;

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 const AuthContext = createContext(null);
 
@@ -14,16 +15,23 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [guestId, setGuestId] = useState(null);
+    const location = useLocation();
 
     const checkAuth = async () => {
         try {
             const response = await fetch("http://localhost:8080/auth/me", {
                 credentials: "include",
+                cache: "no-cache", // Prevent caching
             });
 
             if (response.ok) {
                 const data = await response.json();
-                setUser(data.user);
+                // Only set user if we have valid user data
+                if (data.user && (data.user.email || data.user.name)) {
+                    setUser(data.user);
+                } else {
+                    setUser(null);
+                }
             } else {
                 setUser(null);
             }
@@ -73,7 +81,29 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         checkAuth();
+        
+        // Re-check auth when page becomes visible (e.g., after navigating back)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                checkAuth();
+            }
+        };
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Also check on focus
+        window.addEventListener('focus', checkAuth);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', checkAuth);
+        };
     }, []);
+
+    // Re-check auth when route changes
+    useEffect(() => {
+        checkAuth();
+    }, [location.pathname]);
 
     const login = async (email, password) => {
         const response = await fetch("http://localhost:8080/auth/login", {

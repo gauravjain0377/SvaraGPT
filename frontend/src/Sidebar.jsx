@@ -701,21 +701,40 @@ function Sidebar() {
           <div className="historySection">
             <div className="sectionHeader">
               <h3 className="sectionTitle">Projects</h3>
-              <button
-                className="createProjectBtn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowCreateProject(true);
-                }}
-                title="Create new project"
-              >
-                <i className="fa-solid fa-plus"></i>
-              </button>
+              {user && (
+                <button
+                  className="createProjectBtn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCreateProject(true);
+                  }}
+                  title="Create new project"
+                >
+                  <i className="fa-solid fa-plus"></i>
+                </button>
+              )}
             </div>
 
             {/* Projects List */}
-            <div className="projectsList">
-              {projects.map((project) => (
+            {!user ? (
+              <div className="loginPrompt">
+                <div className="loginPromptIcon">
+                  <i className="fa-solid fa-lock"></i>
+                </div>
+                <h4 className="loginPromptTitle">Projects Require Login</h4>
+                <p className="loginPromptText">
+                  Sign in to organize your chats into projects and access them across devices.
+                </p>
+                <button 
+                  className="loginPromptBtn"
+                  onClick={() => window.location.href = '/login'}
+                >
+                  Log in to Continue
+                </button>
+              </div>
+            ) : (
+              <div className="projectsList">
+                {projects.map((project) => (
                 <div key={project.id} className="projectItem">
                   <div className="projectHeader">
                     <div
@@ -879,7 +898,8 @@ function Sidebar() {
                   )}
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
