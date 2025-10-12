@@ -907,7 +907,7 @@ function Sidebar() {
       {/* Footer */}
       <div className="sidebarFooter">
         <div className="footerInfo">
-          <p>Made with ❤️ by Gaurav Jain</p>
+          <p>Code by Gaurav Jain</p>
         </div>
       </div>
 

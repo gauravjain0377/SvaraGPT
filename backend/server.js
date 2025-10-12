@@ -8,6 +8,7 @@ import chatRoutes from "./routes/chat.js";
 import projectRoutes from "./routes/project.js";
 import authRoutes from "./routes/auth.js";
 import migrateRoutes from "./routes/migrate.js";
+import contactRoutes from "./routes/contact.js";
 import passportConfig from "./config/passport.js";
 
 const app = express();
@@ -15,7 +16,7 @@ const PORT = 8080;
 
 app.use(express.json());
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://localhost:5174"],
     credentials: true
 }));
 app.use(cookieParser());
@@ -36,6 +37,7 @@ app.use("/auth", authRoutes);
 app.use("/api", chatRoutes);
 app.use("/api", projectRoutes);
 app.use("/api/migrate", migrateRoutes);
+app.use("/api", contactRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);

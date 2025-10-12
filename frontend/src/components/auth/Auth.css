@@ -150,8 +150,8 @@
 }
 
 .form-group input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #da7756;
+    box-shadow: 0 0 0 3px rgba(218, 119, 86, 0.15);
 }
 
 .form-group input:disabled {
@@ -204,8 +204,8 @@
 
 .auth-button {
     padding: 14px;
-    background: #0d6efd;
-    color: white;
+    background: #da7756;
+    color: #000000;
     border: none;
     border-radius: 8px;
     font-size: 16px;
@@ -216,8 +216,8 @@
 }
 
 .auth-button:hover:not(:disabled) {
-    background: #0b5ed7;
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+    background: #c96647;
+    box-shadow: 0 4px 12px rgba(218, 119, 86, 0.4);
 }
 
 .auth-button:active:not(:disabled) {
@@ -286,19 +286,20 @@
 }
 
 .auth-footer a {
-    color: #007bff;
+    color: #e89070;
     text-decoration: none;
     font-weight: 600;
 }
 
 .auth-footer a:hover {
     text-decoration: underline;
+    color: #da7756;
 }
 
 .link-button {
     background: none;
     border: none;
-    color: #007bff;
+    color: #e89070;
     font-weight: 600;
     cursor: pointer;
     padding: 0;
