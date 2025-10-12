@@ -91,6 +91,7 @@ function ChatWindow() {
             if (response.status === 403) {
                 const errorData = await response.json();
                 if (errorData.error && errorData.error.includes("Guest limit")) {
+                    // Show modal
                     setShowGuestLimitModal(true);
                     // Remove the loading message
                     setPrevChats(prev => prev.slice(0, -2));
@@ -234,40 +235,46 @@ function ChatWindow() {
 
             {/* Guest Limit Modal */}
             {showGuestLimitModal && (
-                <div className="modalOverlay" onClick={() => setShowGuestLimitModal(false)}>
-                    <div className="modal guestLimitModal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modalHeader">
-                            <h2>Continue Chatting</h2>
-                            <button 
-                                className="closeBtn" 
-                                onClick={() => setShowGuestLimitModal(false)}
-                            >
-                                <i className="fa-solid fa-xmark"></i>
-                            </button>
+                <div className="limit-modal-backdrop" onClick={() => setShowGuestLimitModal(false)}>
+                    <div className="limit-modal-container" onClick={(e) => e.stopPropagation()}>
+                        {/* Close Button */}
+                        <button 
+                            className="limit-modal-close" 
+                            onClick={() => setShowGuestLimitModal(false)}
+                            aria-label="Close"
+                        >
+                            ×
+                        </button>
+                        
+                        {/* Icon */}
+                        <div className="limit-modal-icon">
+                            <i className="fa-solid fa-lock"></i>
                         </div>
-                        <div className="modalBody">
-                            <div className="limitIcon">
-                                <i className="fa-solid fa-lock"></i>
-                            </div>
-                            <p className="limitMessage">
-                                You've reached the limit of 3 prompts.
-                            </p>
-                            <p className="limitSubtext">
-                                Create a free account to continue chatting and unlock additional features like project management!
-                            </p>
-                        </div>
-                        <div className="modalActions">
+                        
+                        {/* Title */}
+                        <h2 className="limit-modal-title">
+                            You've reached your limit
+                        </h2>
+                        
+                        {/* Description */}
+                        <p className="limit-modal-description">
+                            You've used all 3 free messages. Sign up for a free account to continue chatting and unlock more features!
+                        </p>
+                        
+                        {/* Buttons */}
+                        <div className="limit-modal-buttons">
                             <button 
-                                className="primaryBtn"
+                                className="limit-modal-btn-primary"
                                 onClick={() => navigate('/register')}
                             >
-                                Sign Up Free
+                                <span>Sign Up Free</span>
+                                <i className="fa-solid fa-arrow-right"></i>
                             </button>
                             <button 
-                                className="secondaryBtn"
+                                className="limit-modal-btn-secondary"
                                 onClick={() => navigate('/login')}
                             >
-                                Log In
+                                Already have an account? Log in
                             </button>
                         </div>
                     </div>
