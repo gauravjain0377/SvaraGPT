@@ -6,6 +6,7 @@ import { useAuth } from "./context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 import {ScaleLoader} from "react-spinners";
 import logo3 from "./assets/logo3.png";
+import { apiUrl } from "./utils/apiConfig";
 
 function ChatWindow() {
     const {
@@ -85,7 +86,7 @@ function ChatWindow() {
                         : project
                 ));
                 // Persist to backend project (fire-and-forget)
-                fetch(`http://localhost:8080/api/projects/${currentProject}/chats`, {
+                fetch(apiUrl(`/api/projects/${currentProject}/chats`), {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -99,7 +100,7 @@ function ChatWindow() {
         // 3) Check guest limit before sending
         if (!user) {
             try {
-                const usageResponse = await fetch("http://localhost:8080/api/guest-usage", {
+                const usageResponse = await fetch(apiUrl("/api/guest-usage"), {
                     method: "GET",
                     credentials: "include"
                 });
@@ -129,7 +130,7 @@ function ChatWindow() {
         setPrompt("");
 
         try {
-            const response = await fetch("http://localhost:8080/api/chat", options);
+            const response = await fetch(apiUrl("/api/chat"), options);
             
             // Check if guest limit reached
             if (response.status === 403) {
@@ -353,7 +354,7 @@ function ChatWindow() {
         setContactFormStatus({ type: '', message: '' });
 
         try {
-            const response = await fetch('http://localhost:8080/api/contact', {
+            const response = await fetch(apiUrl('/api/contact'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -392,7 +393,7 @@ function ChatWindow() {
     // Two-Factor Authentication Functions
     const handleEnable2FA = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/auth/2fa/setup', {
+            const response = await fetch(apiUrl('/api/auth/2fa/setup'), {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -411,7 +412,7 @@ function ChatWindow() {
 
     const handleVerify2FA = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/auth/2fa/verify', {
+            const response = await fetch(apiUrl('/api/auth/2fa/verify'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -438,7 +439,7 @@ function ChatWindow() {
         if (!confirm('Are you sure you want to disable Two-Factor Authentication?')) return;
         
         try {
-            const response = await fetch('http://localhost:8080/api/auth/2fa/disable', {
+            const response = await fetch(apiUrl('/api/auth/2fa/disable'), {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -455,7 +456,7 @@ function ChatWindow() {
     // Active Sessions Functions
     const fetchActiveSessions = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/auth/sessions', {
+            const response = await fetch(apiUrl('/api/auth/sessions'), {
                 credentials: 'include',
             });
             const data = await response.json();
@@ -471,7 +472,7 @@ function ChatWindow() {
 
     const handleLogoutSession = async (sessionId) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/auth/sessions/${sessionId}`, {
+            const response = await fetch(apiUrl(`/api/auth/sessions/${sessionId}`), {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -488,7 +489,7 @@ function ChatWindow() {
         if (!confirm('This will log you out from all devices. Continue?')) return;
         
         try {
-            const response = await fetch('http://localhost:8080/api/auth/sessions/all', {
+            const response = await fetch(apiUrl('/api/auth/sessions/all'), {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -506,7 +507,7 @@ function ChatWindow() {
     useEffect(() => {
         const fetch2FAStatus = async () => {
             try {
-                const response = await fetch('http://localhost:8080/api/auth/2fa/status', {
+                const response = await fetch(apiUrl('/api/auth/2fa/status'), {
                     credentials: 'include',
                 });
                 const data = await response.json();

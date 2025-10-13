@@ -55,7 +55,7 @@ function Sidebar() {
     setIsLoading(prev => ({ ...prev, threads: true, error: null }));
     
     try {
-      const response = await fetch("http://localhost:8080/api/thread", {
+      const response = await fetch(apiUrl("/api/thread"), {
         credentials: "include"
       });
       if (!response.ok) {
@@ -111,7 +111,7 @@ function Sidebar() {
     setIsLoading(prev => ({ ...prev, projects: true, error: null }));
     
     try {
-      const response = await fetch("http://localhost:8080/api/projects", {
+      const response = await fetch(apiUrl("/api/projects"), {
         credentials: "include"
       });
       if (!response.ok) {
@@ -159,7 +159,7 @@ function Sidebar() {
         await getAllThreads();
         
         // Fetch projects for the authenticated user
-        const projectsResponse = await fetch("http://localhost:8080/api/projects", {
+        const projectsResponse = await fetch(apiUrl("/api/projects"), {
           credentials: "include"
         });
         
@@ -237,7 +237,7 @@ function Sidebar() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/thread/${newThreadId}`,
+        apiUrl(`/api/thread/${newThreadId}`),
         { credentials: "include" }
       );
       const res = await response.json();
@@ -259,7 +259,7 @@ function Sidebar() {
     try {
       // Delete the thread from MongoDB
       const response = await fetch(
-        `http://localhost:8080/api/thread/${threadId}`,
+        apiUrl(`/api/thread/${threadId}`),
         { 
           method: "DELETE",
           credentials: "include"
@@ -290,7 +290,7 @@ function Sidebar() {
       // Also remove from any projects in MongoDB
       try {
         // The correct endpoint format based on the backend route
-        await fetch(`http://localhost:8080/api/projects/all/chats/${threadId}?removeFromAll=true`, {
+        await fetch(apiUrl(`/api/projects/all/chats/${threadId}?removeFromAll=true`), {
           method: "DELETE",
           credentials: "include"
         });
@@ -317,7 +317,7 @@ function Sidebar() {
       createdAt: new Date().toISOString(),
     };
     try {
-      await fetch("http://localhost:8080/api/projects", {
+      await fetch(apiUrl("/api/projects"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -344,7 +344,7 @@ function Sidebar() {
 
   const renameProject = async (projectId, newName) => {
     try {
-      await fetch(`http://localhost:8080/api/projects/${projectId}`, {
+      await fetch(apiUrl(`/api/projects/${projectId}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -374,7 +374,7 @@ function Sidebar() {
     }
     try {
       // Use hardDelete=true to ensure it's removed from MongoDB
-      await fetch(`http://localhost:8080/api/projects/${projectId}?hardDelete=true`, {
+      await fetch(apiUrl(`/api/projects/${projectId}?hardDelete=true`), {
         method: "DELETE",
         credentials: "include",
       });
@@ -433,7 +433,7 @@ function Sidebar() {
     const prevProject = projects.find((p) => p.chats.some((c) => c.threadId === threadId));
     if (prevProject) {
       try {
-        await fetch(`http://localhost:8080/api/projects/${prevProject.id}/chats/${threadId}`, {
+        await fetch(apiUrl(`/api/projects/${prevProject.id}/chats/${threadId}`), {
           method: "DELETE",
           credentials: "include",
         });
@@ -456,7 +456,7 @@ function Sidebar() {
       );
       // Sync backend add
       try {
-        await fetch(`http://localhost:8080/api/projects/${projectId}/chats`, {
+        await fetch(apiUrl(`/api/projects/${projectId}/chats`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -491,7 +491,7 @@ function Sidebar() {
 
     // Persist to thread collection
     try {
-      await fetch(`http://localhost:8080/api/thread/${threadId}`, {
+      await fetch(apiUrl(`/api/thread/${threadId}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -505,7 +505,7 @@ function Sidebar() {
     const projectWithChat = projects.find((p) => p.chats.some((c) => c.threadId === threadId));
     if (projectWithChat) {
       try {
-        await fetch(`http://localhost:8080/api/projects/${projectWithChat.id}/chats/${threadId}`, {
+        await fetch(apiUrl(`/api/projects/${projectWithChat.id}/chats/${threadId}`), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

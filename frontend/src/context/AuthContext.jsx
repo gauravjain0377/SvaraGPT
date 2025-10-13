@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { apiUrl } from "../utils/apiConfig";
 
 const AuthContext = createContext(null);
 
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuth = async () => {
         try {
-            const response = await fetch("http://localhost:8080/auth/me", {
+            const response = await fetch(apiUrl("/auth/me"), {
                 credentials: "include",
                 cache: "no-cache", // Prevent caching
             });
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }) => {
     // Get guest usage info
     const getGuestUsage = async () => {
         try {
-            const response = await fetch("http://localhost:8080/api/guest-usage", {
+            const response = await fetch(apiUrl("/api/guest-usage"), {
                 credentials: "include",
             });
             if (response.ok) {
@@ -61,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     // Migrate guest data to authenticated user
     const migrateGuestData = async () => {
         try {
-            const response = await fetch("http://localhost:8080/api/migrate/guest-data", {
+            const response = await fetch(apiUrl("/api/migrate/guest-data"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -106,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     }, [location.pathname]);
 
     const login = async (email, password) => {
-        const response = await fetch("http://localhost:8080/auth/login", {
+        const response = await fetch(apiUrl("/auth/login"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -134,7 +135,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const register = async (name, email, password) => {
-        const response = await fetch("http://localhost:8080/auth/register", {
+        const response = await fetch(apiUrl("/auth/register"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -158,7 +159,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const verify = async (email, code) => {
-        const response = await fetch("http://localhost:8080/auth/verify", {
+        const response = await fetch(apiUrl("/auth/verify"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -183,7 +184,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const resendCode = async (email) => {
-        const response = await fetch("http://localhost:8080/auth/resend-code", {
+        const response = await fetch(apiUrl("/auth/resend-code"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -200,7 +201,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            await fetch("http://localhost:8080/auth/logout", {
+            await fetch(apiUrl("/auth/logout"), {
                 method: "POST",
                 credentials: "include",
             });
@@ -220,7 +221,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const loginWithGoogle = () => {
-        window.location.href = "http://localhost:8080/auth/google";
+        window.location.href = apiUrl("/auth/google");
     };
 
     const value = {
