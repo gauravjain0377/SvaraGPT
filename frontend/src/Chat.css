@@ -52,38 +52,71 @@
 
 .suggestedPrompts {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
-    margin-bottom: 32px;
+    margin-top: 20px;
+    margin-bottom: 100px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .promptCard {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 16px 20px;
+    padding: 24px 28px;
     background-color: #2a2a2a;
     border: 1px solid #404040;
-    border-radius: 12px;
+    border-radius: 16px;
     cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
+    transition: all 0.3s ease;
+    text-align: center;
+    min-height: 80px;
+    position: relative;
+    overflow: hidden;
+}
+
+.promptCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
 }
 
 .promptCard:hover {
     background-color: #333;
-    border-color: #555;
-    transform: translateY(-2px);
+    border-color: #ff6b35;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+}
+
+.promptCard:hover::before {
+    transform: scaleY(1);
 }
 
 .promptCard span {
-    font-size: 14px;
+    font-size: 16px;
     color: #ececec;
+    font-weight: 500;
+    line-height: 1.4;
+    flex: 1;
+    text-align: center;
 }
 
 .promptCard i {
     color: #b4b4b4;
-    font-size: 14px;
+    font-size: 18px;
+    transition: color 0.3s ease;
+}
+
+.promptCard:hover i {
+    color: #ff6b35;
 }
 
 .capabilities {
@@ -117,14 +150,19 @@
 .chats {
     flex: 1;
     padding: 20px;
-    padding-bottom: 120px;
-    overflow-y: auto;
+    padding-bottom: 160px;
     background: transparent;
+    position: relative;
 }
 
 .messageUser,
 .messageAssistant {
     margin-bottom: 24px;
+}
+
+.messageUser:last-child,
+.messageAssistant:last-child {
+    margin-bottom: 60px;
 }
 
 .messageContent {

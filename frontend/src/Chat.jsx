@@ -38,20 +38,20 @@ function Chat() {
 
     const suggestedPrompts = [
         {
-            title: "    Help me write a Java function. ",
-         
+            title: "Help me write a Java function.",
+
         },
         {
             title: "Explain quantum computing",
-           
+
         },
         {
             title: "Create a marketing strategy",
-            
+
         },
         {
             title: "Debug my JavaScript code",
-           
+
         }
     ];
 
