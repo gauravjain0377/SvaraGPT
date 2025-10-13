@@ -2,6 +2,7 @@ import "./Sidebar.css";
 import { useContext, useEffect, useState } from "react";
 import { MyContext } from "./MyContext.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
+import { apiUrl } from "./utils/apiConfig";
 import { v1 as uuidv1 } from "uuid";
 
 function Sidebar() {
