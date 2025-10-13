@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import logo3 from "./assets/logo3.png";
+import { apiUrl } from "./utils/apiConfig";
 
 
 // react-markdown
