@@ -56,7 +56,7 @@ function ChatWindow() {
         return user.email ? user.email.charAt(0).toUpperCase() : "";
     };
 
-    const getReply = useCallback(async (overridePrompt) => {
+    const getReply = useCallback(async (overridePrompt, addUser = true) => {
         const activePrompt = (overridePrompt ?? prompt).trim();
         if(!activePrompt) return;
         setLoading(true);
@@ -65,34 +65,43 @@ function ChatWindow() {
         let usedPrompt = activePrompt;
 
         // 1) Optimistically render user's message immediately
-        setPrevChats(prev => ([
-            ...prev,
-            { role: "user", content: usedPrompt },
-            { role: "assistant", content: "", isLoading: true }
-        ]));
+        if (addUser) {
+            setPrevChats(prev => ([
+                ...prev,
+                { role: "user", content: usedPrompt },
+                { role: "assistant", content: "", isLoading: true }
+            ]));
+        } else {
+            setPrevChats(prev => ([
+                ...prev,
+                { role: "assistant", content: "", isLoading: true }
+            ]));
+        }
 
         // 2) If this is the first message in a new chat, reflect it in the sidebar instantly
-        const newThread = {
-            threadId: currThreadId,
-            title: usedPrompt.slice(0, 50) + (usedPrompt.length > 50 ? '...' : ''),
-            projectId: currentProject
-        };
-        if (prevChats.length === 0) {
-            if (currentProject) {
-                setProjects(prev => prev.map(project =>
-                    project.id === currentProject
-                        ? { ...project, chats: project.chats.some(c => c.threadId === newThread.threadId) ? project.chats : [...project.chats, newThread] }
-                        : project
-                ));
-                // Persist to backend project (fire-and-forget)
-                fetch(`http://localhost:8080/api/projects/${currentProject}/chats`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ threadId: newThread.threadId, title: newThread.title })
-                }).catch(err => console.log(err));
-            } else {
-                setAllThreads(prev => prev.some(t => t.threadId === newThread.threadId) ? prev : [...prev, newThread]);
+        if (addUser) {
+            const newThread = {
+                threadId: currThreadId,
+                title: usedPrompt.slice(0, 50) + (usedPrompt.length > 50 ? '...' : ''),
+                projectId: currentProject
+            };
+            if (prevChats.length === 0) {
+                if (currentProject) {
+                    setProjects(prev => prev.map(project =>
+                        project.id === currentProject
+                            ? { ...project, chats: project.chats.some(c => c.threadId === newThread.threadId) ? project.chats : [...project.chats, newThread] }
+                            : project
+                    ));
+                    // Persist to backend project (fire-and-forget)
+                    fetch(`http://localhost:8080/api/projects/${currentProject}/chats`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ threadId: newThread.threadId, title: newThread.title })
+                    }).catch(err => console.log(err));
+                } else {
+                    setAllThreads(prev => prev.some(t => t.threadId === newThread.threadId) ? prev : [...prev, newThread]);
+                }
             }
         }
 
@@ -196,7 +205,7 @@ function ChatWindow() {
         const next = queueRef.current.shift();
         if (!next) return;
         isProcessingRef.current = true;
-        getReply(next.prompt).finally(() => {
+        getReply(next.prompt, next.addUser).finally(() => {
             isProcessingRef.current = false;
             processQueue();
         });
@@ -204,16 +213,31 @@ function ChatWindow() {
 
     useEffect(() => {
         const handler = (event) => {
-            const { prompt: queuedPrompt } = event.detail || {};
+            const { prompt: queuedPrompt, editIndex, regenerate, addUser = true } = event.detail || {};
             if (!queuedPrompt) return;
-            queueRef.current.push({ prompt: queuedPrompt });
+
+            // Prevent sending while already processing
+            if (isProcessingRef.current) return;
+
+            if (editIndex !== undefined) {
+                // Truncate prevChats after the edited message
+                setPrevChats(prev => prev.slice(0, editIndex + 1));
+            } else if (regenerate) {
+                // Find the last user message and truncate after it
+                const lastUserIndex = prevChats.map((chat, i) => ({ chat, i })).reverse().find(({ chat }) => chat.role === "user")?.i;
+                if (lastUserIndex !== undefined) {
+                    setPrevChats(prev => prev.slice(0, lastUserIndex + 1));
+                }
+            }
+
+            queueRef.current.push({ prompt: queuedPrompt, addUser });
             processQueue();
         };
         window.addEventListener("svaragpt-send-prompt", handler);
         return () => {
             window.removeEventListener("svaragpt-send-prompt", handler);
         };
-    }, [processQueue]);
+    }, [processQueue, prevChats, setPrevChats]);
 
     useEffect(() => {
         const handleReplyReceived = () => {
