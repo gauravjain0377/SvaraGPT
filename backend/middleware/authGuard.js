@@ -10,6 +10,12 @@ export async function authGuard(req, res, next) {
             cookieNames: Object.keys(req.cookies || {}),
             origin: req.headers.origin,
             referer: req.headers.referer,
+            rawCookieHeader: req.headers.cookie || "<none>",
+            forwardedFor: req.headers["x-forwarded-for"],
+            secure: req.secure,
+            protocol: req.protocol,
+            hostname: req.hostname,
+            trustProxy: req.app?.get("trust proxy"),
         });
         return res.status(401).json({ error: "Authentication required" });
     }
