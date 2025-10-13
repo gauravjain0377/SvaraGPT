@@ -14,9 +14,50 @@ import passportConfig from "./config/passport.js";
 const app = express();
 const PORT = 8080;
 
+const normalizeOrigin = (value) => {
+    if (!value || typeof value !== "string") return null;
+    return value.replace(/\/$/, "");
+};
+
+const defaultAllowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    normalizeOrigin(process.env.FRONTEND_URL),
+    "https://svaragpt.vercel.app"
+];
+
+const envAllowedOrigins = [
+    normalizeOrigin(process.env.FRONTEND_URL),
+    normalizeOrigin(process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`),
+    normalizeOrigin(process.env.RENDER_EXTERNAL_URL && `https://${process.env.RENDER_EXTERNAL_URL}`),
+    normalizeOrigin(process.env.VERCEL_ALLOWED_ORIGINS)
+]
+    .flatMap((origin) => {
+        if (!origin) return [];
+        return origin.split(",").map((item) => normalizeOrigin(item.trim())).filter(Boolean);
+    })
+    .filter(Boolean);
+
+const extraAllowedOrigins = [
+    "https://svaragpt.onrender.com"
+];
+
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins, ...extraAllowedOrigins].filter(Boolean))];
+
+console.log("[CORS] Allowed origins:", allowedOrigins);
+
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: (origin, callback) => {
+        const normalizedOrigin = normalizeOrigin(origin);
+        if (!origin || (normalizedOrigin && allowedOrigins.includes(normalizedOrigin))) {
+            console.log(`[CORS] Allowed request from origin: ${origin ?? "<no-origin>"}`);
+            return callback(null, origin);
+        }
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+        return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true
 }));
 app.use(cookieParser());
@@ -26,6 +67,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000
     }

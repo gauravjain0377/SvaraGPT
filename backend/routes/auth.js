@@ -242,7 +242,21 @@ router.post("/logout", async (req, res) => {
     }
 });
 
-router.get("/me", authGuard, async (req, res) => {
+router.get("/me", (req, res, next) => {
+    console.log("[AUTH /me] Incoming request", {
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        cookiesPresent: Object.keys(req.cookies || {}).length > 0,
+        cookieNames: Object.keys(req.cookies || {}),
+        userAgent: req.headers["user-agent"],
+        forwardedFor: req.headers["x-forwarded-for"],
+    });
+    next();
+}, authGuard, async (req, res) => {
+    console.log("[AUTH /me] Authenticated user", {
+        id: req.user?._id?.toString(),
+        email: req.user?.email,
+    });
     res.status(200).json({ user: req.user.profile() });
 });
 
