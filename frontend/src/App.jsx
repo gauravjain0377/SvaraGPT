@@ -12,7 +12,8 @@ function App() {
   const [prevChats, setPrevChats] = useState([]); //stores all chats of curr threads
   const [newChat, setNewChat] = useState(true);
   const [allThreads, setAllThreads] = useState([]);
-  
+
+
   // Project Management State
   const [projects, setProjects] = useState([]); // [{id, name, chats: []}]
   const [currentProject, setCurrentProject] = useState(null); // Current project context for new chats
@@ -34,6 +35,7 @@ function App() {
     newChat, setNewChat,
     prevChats, setPrevChats,
     allThreads, setAllThreads,
+
     // Project management
     projects, setProjects,
     currentProject, setCurrentProject,

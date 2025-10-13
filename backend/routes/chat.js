@@ -1,5 +1,6 @@
 import express from "express";
 import Thread from "../models/Thread.js";
+import GuestUsage from "../models/GuestUsage.js";
 import { GoogleGenAI } from "@google/genai";
 import getGeminiResponse from "../utils/gemini.js";
 import getGitHubModelsResponse from "../utils/githubModels.js";
@@ -89,18 +90,16 @@ router.get("/guest-usage", async (req, res) => {
             return res.json({ isGuest: false, promptsUsed: 0, promptsRemaining: Infinity });
         }
 
-        const threads = await Thread.find({ userId: req.userId });
-        let totalPrompts = 0;
-        threads.forEach(thread => {
-            const userMessages = thread.messages.filter(msg => msg.role === 'user');
-            totalPrompts += userMessages.length;
-        });
+        let guestUsage = await GuestUsage.findOne({ guestId: req.userId });
+        if (!guestUsage) {
+            guestUsage = { totalMessages: 0 };
+        }
 
         res.json({
             isGuest: true,
-            promptsUsed: totalPrompts,
-            promptsRemaining: Math.max(0, 3 - totalPrompts),
-            limitReached: totalPrompts >= 3
+            promptsUsed: guestUsage.totalMessages,
+            promptsRemaining: Math.max(0, 3 - guestUsage.totalMessages),
+            limitReached: guestUsage.totalMessages >= 3
         });
     } catch (err) {
         console.error("Error fetching guest usage:", err);
@@ -221,6 +220,14 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
         thread.lastMessageAt = new Date();
 
         await thread.save();
+
+        // Increment guest usage count if guest
+        if (req.guestUsage) {
+            req.guestUsage.totalMessages += 1;
+            req.guestUsage.updatedAt = new Date();
+            await req.guestUsage.save();
+        }
+
         res.json({ reply: assistantReply });
     } catch (err) {
         console.error("Chat endpoint error:", err.message);

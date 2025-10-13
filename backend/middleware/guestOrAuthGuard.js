@@ -1,6 +1,7 @@
 import { verifyToken } from "../utils/tokens.js";
 import User from "../models/User.js";
 import Thread from "../models/Thread.js";
+import GuestUsage from "../models/GuestUsage.js";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -64,19 +65,16 @@ export async function checkGuestLimit(req, res, next) {
     }
 
     try {
-        // Count total messages sent by this guest across all threads
-        const threads = await Thread.find({ userId: req.userId });
-        
-        let totalPrompts = 0;
-        threads.forEach(thread => {
-            // Count only user messages (not assistant responses)
-            const userMessages = thread.messages.filter(msg => msg.role === 'user');
-            totalPrompts += userMessages.length;
-        });
+        // Get or create guest usage
+        let guestUsage = await GuestUsage.findOne({ guestId: req.userId });
+        if (!guestUsage) {
+            guestUsage = new GuestUsage({ guestId: req.userId, totalMessages: 0 });
+            await guestUsage.save();
+        }
 
         // Guest limit is 3 prompts
-        if (totalPrompts >= 3) {
-            return res.status(403).json({ 
+        if (guestUsage.totalMessages >= 3) {
+            return res.status(403).json({
                 error: "Guest limit reached",
                 message: "You've used all 3 free prompts. Please login or register to continue.",
                 limitReached: true
@@ -84,7 +82,8 @@ export async function checkGuestLimit(req, res, next) {
         }
 
         // Pass remaining prompts to the route
-        req.guestPromptsRemaining = 3 - totalPrompts;
+        req.guestPromptsRemaining = 3 - guestUsage.totalMessages;
+        req.guestUsage = guestUsage; // Pass to route for increment
         next();
     } catch (error) {
         console.error("❌ [GUEST LIMIT CHECK] Error:", error);

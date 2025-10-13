@@ -190,6 +190,10 @@
     color: white;
 }
 
+.userAvatar i {
+    font-size: 16px;
+}
+
 .assistantAvatar {
     width: 32px;
     height: 32px;

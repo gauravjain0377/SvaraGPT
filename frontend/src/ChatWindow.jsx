@@ -96,7 +96,28 @@ function ChatWindow() {
             }
         }
 
-        // 3) Send to backend
+        // 3) Check guest limit before sending
+        if (!user) {
+            try {
+                const usageResponse = await fetch("http://localhost:8080/api/guest-usage", {
+                    method: "GET",
+                    credentials: "include"
+                });
+                const usageData = await usageResponse.json();
+                if (usageData.limitReached) {
+                    setShowGuestLimitModal(true);
+                    // Remove the loading message
+                    setPrevChats(prevState => prevState.filter(chat => !(chat.role === "assistant" && chat.isLoading)));
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.error("Error checking guest usage:", err);
+                // Continue if error, let backend handle
+            }
+        }
+
+        // 4) Send to backend
         const options = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -126,7 +147,7 @@ function ChatWindow() {
             const res = await response.json();
             setReply(res.reply);
 
-            // 4) Replace the temporary loader message with the real reply
+            // 5) Replace the temporary loader message with the real reply
             setPrevChats(prev => {
                 const updated = [...prev];
                 // Find last assistant placeholder
@@ -168,7 +189,7 @@ function ChatWindow() {
             });
         }
         setLoading(false);
-    }, [prompt, setLoading, setNewChat, setPrevChats, currThreadId, currentProject, prevChats.length, setProjects, setAllThreads, setPrompt, setReply, setShowGuestLimitModal, navigate, projects, allThreads]);
+    }, [prompt, setLoading, setNewChat, setPrevChats, currThreadId, currentProject, prevChats.length, setProjects, setAllThreads, setPrompt, setReply, setShowGuestLimitModal, navigate, projects, allThreads, user]);
 
     const processQueue = useCallback(() => {
         if (isProcessingRef.current) return;

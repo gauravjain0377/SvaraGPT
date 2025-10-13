@@ -1,6 +1,7 @@
 import "./Chat.css";
 import React, { useContext, useState, useEffect } from "react";
 import { MyContext } from "./MyContext";
+import { useAuth } from "./context/AuthContext";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
@@ -12,6 +13,7 @@ import logo3 from "./assets/logo3.png";
 
 function Chat() {
     const { newChat, prevChats, reply, setPrompt, setPrevChats, setNewChat, setCurrentProject, currThreadId } = useContext(MyContext);
+    const { user } = useAuth();
     const [latestReply, setLatestReply] = useState(null);
 
     useEffect(() => {
@@ -118,7 +120,22 @@ function Chat() {
                                 <div className="messageContent">
                                     <div className="messageAvatar">
                                         {isUser ? (
-                                            <div className="userAvatar">GJ</div>
+                                            <div className="userAvatar">
+                                                {user ? (
+                                                    (() => {
+                                                        if (user.name) {
+                                                            const names = user.name.split(" ");
+                                                            if (names.length >= 2) {
+                                                                return names[0].charAt(0).toUpperCase() + names[1].charAt(0).toUpperCase();
+                                                            }
+                                                            return user.name.charAt(0).toUpperCase();
+                                                        }
+                                                        return user.email ? user.email.charAt(0).toUpperCase() : "";
+                                                    })()
+                                                ) : (
+                                                    <i className="fa-solid fa-user"></i>
+                                                )}
+                                            </div>
                                         ) : (
                                             <div className="assistantAvatar">
                                                 <img src={logo3} alt="SvaraGPT Logo" />
