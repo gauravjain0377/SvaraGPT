@@ -14,8 +14,8 @@ const router = express.Router();
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production",
+    sameSite: process.env.COOKIE_SAME_SITE || (process.env.NODE_ENV === "production" ? "none" : "lax"),
     domain: process.env.COOKIE_DOMAIN || undefined,
 };
 

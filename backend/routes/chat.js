@@ -5,8 +5,20 @@ import { GoogleGenAI } from "@google/genai";
 import getGeminiResponse from "../utils/gemini.js";
 import getGitHubModelsResponse from "../utils/githubModels.js";
 import { guestOrAuthGuard, checkGuestLimit } from "../middleware/guestOrAuthGuard.js";
+import { v4 as uuidv4 } from "uuid";
 
 const router = express.Router();
+
+// Error handler for duplicate key errors
+const handleDuplicateKeyError = async (err, req, res, next) => {
+  if (err.name === 'MongoServerError' && err.code === 11000) {
+    console.log('Handling duplicate key error:', err.keyValue);
+    // Generate a new unique threadId
+    const newThreadId = uuidv4();
+    return { newThreadId, isDuplicate: true };
+  }
+  throw err;
+};
 
 // Apply guest or auth guard to all routes (allows both authenticated and guest users)
 router.use(guestOrAuthGuard);
@@ -185,28 +197,51 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
     try {
         // Use findOneAndUpdate with upsert to prevent race conditions
         // This will either find an existing thread or create a new one atomically
-        const thread = await Thread.findOneAndUpdate(
-            { threadId, userId: req.userId },
-            { 
-                $setOnInsert: {
-                    threadId,
-                    userId: req.userId,
-                    title: message.substring(0, 100), // Limit title length
-                    createdAt: new Date()
+        let thread;
+        try {
+            thread = await Thread.findOneAndUpdate(
+                { threadId, userId: req.userId },
+                { 
+                    $setOnInsert: {
+                        threadId,
+                        userId: req.userId,
+                        title: message.substring(0, 100), // Limit title length
+                        createdAt: new Date()
+                    },
+                    $set: {
+                        updatedAt: new Date()
+                    },
+                    $push: {
+                        messages: { role: "user", content: message }
+                    }
                 },
-                $set: {
-                    updatedAt: new Date()
-                },
-                $push: {
-                    messages: { role: "user", content: message }
+                { 
+                    new: true, // Return the updated document
+                    upsert: true, // Create if it doesn't exist
+                    runValidators: true
                 }
-            },
-            { 
-                new: true, // Return the updated document
-                upsert: true, // Create if it doesn't exist
-                runValidators: true
+            );
+        } catch (err) {
+            // Handle duplicate key error
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                console.log('Handling duplicate key error:', err.keyValue);
+                // Generate a new unique threadId
+                const newThreadId = uuidv4();
+                console.log(`Generated new threadId: ${newThreadId} to replace duplicate: ${threadId}`);
+                
+                // Try again with the new threadId
+                thread = await Thread.create({
+                    threadId: newThreadId,
+                    userId: req.userId,
+                    title: message.substring(0, 100),
+                    messages: [{ role: "user", content: message }],
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+            } else {
+                throw err;
             }
-        );
+        }
 
         // If projectId is provided, ensure thread is associated with project
         if (projectId && !thread.projectIds.includes(projectId)) {
@@ -228,7 +263,7 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
             await req.guestUsage.save();
         }
 
-        res.json({ reply: assistantReply });
+        res.json({ reply: assistantReply, threadId: thread.threadId });
     } catch (err) {
         console.error("Chat endpoint error:", err.message);
         console.error("Full error:", err);
