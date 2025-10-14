@@ -4,6 +4,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import chatRoutes from "./routes/chat.js";
 import projectRoutes from "./routes/project.js";
 import authRoutes from "./routes/auth.js";
@@ -56,17 +57,29 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cors({
     origin: (origin, callback) => {
-        const normalizedOrigin = normalizeOrigin(origin);
-        // Log the origin for debugging
-        console.log(`🔍 CORS Request from origin: ${origin}`);
-        
-        if (!origin || (normalizedOrigin && allowedOrigins.includes(normalizedOrigin))) {
-            console.log(`✅ CORS allowed for: ${origin}`);
-            return callback(null, origin);
+        // In production, we should be strict about origins
+        if (process.env.NODE_ENV === 'production') {
+            // If no origin (like server-to-server requests), allow it
+            if (!origin) {
+                console.log(`✅ CORS allowed for server-to-server request`);
+                return callback(null, true);
+            }
+            
+            const normalizedOrigin = normalizeOrigin(origin);
+            console.log(`🔍 CORS Request from origin: ${origin}`);
+            
+            if (normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) {
+                console.log(`✅ CORS allowed for: ${origin}`);
+                return callback(null, origin);
+            }
+            
+            console.log(`❌ CORS blocked for: ${origin}`);
+            return callback(new Error("Not allowed by CORS"));
+        } else {
+            // In development, be more permissive
+            console.log(`✅ CORS allowed in development for: ${origin || 'server-to-server'}`);
+            return callback(null, origin || true);
         }
-        
-        console.log(`❌ CORS blocked for: ${origin}`);
-        return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -77,11 +90,17 @@ app.use(session({
     secret: process.env.SESSION_SECRET || "your-session-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        ttl: 24 * 60 * 60, // 1 day
+        autoRemove: 'native',
+        touchAfter: 24 * 3600 // time period in seconds
+    }),
     cookie: {
         secure: true, // Always use secure for cross-domain
         sameSite: "none", // Required for cross-site cookies between Vercel and Render
         httpOnly: true,
-        domain: process.env.COOKIE_DOMAIN || undefined,
+        // Remove domain restriction to allow cookies to work across domains
         maxAge: 24 * 60 * 60 * 1000
     },
     proxy: true // Required when behind a proxy like Render
@@ -114,9 +133,10 @@ const connectDB = async() => {
         await mongoose.connect(process.env.MONGODB_URL, {
             dbName: process.env.MONGODB_DB_NAME || "SvaraGPT_Database"
         });
-        console.log("Connected with Database!");
+        console.log("✅ Connected with Database!");
     } catch(err) {
-        console.log("Failed to connect with Db", err);
+        console.error("❌ Failed to connect with Db", err);
+        console.error("MongoDB URL (masked):", process.env.MONGODB_URL ? "***" + process.env.MONGODB_URL.slice(-10) : "Not defined");
     }
 }
 

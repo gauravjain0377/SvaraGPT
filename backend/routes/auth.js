@@ -16,8 +16,8 @@ const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: true, // Always use secure for cross-domain
     sameSite: "none", // Required for cross-site cookies between Vercel and Render
-    domain: process.env.COOKIE_DOMAIN || undefined,
     path: "/", // Ensure cookies are available across all paths
+    // Remove domain restriction to allow cookies to work across domains
 };
 
 function setAuthCookies(res, { accessToken, refreshToken }) {
@@ -243,18 +243,36 @@ router.post("/logout", async (req, res) => {
     }
 });
 
-router.get("/me", (req, res, next) => {
-    console.log("🔍 /auth/me request received");
-    console.log("🍪 Cookies:", req.cookies);
-    console.log("👤 User in session:", req.user);
-    
-    if (!req.user) {
-        console.log("❌ No authenticated user found");
-        return res.status(401).json({ error: "Authentication required" });
+router.get("/me", (req, res) => {
+    try {
+        // Add detailed logging for debugging
+        console.log("🔍 /me route - Headers:", {
+            origin: req.headers.origin,
+            referer: req.headers.referer,
+            cookie: req.headers.cookie ? "Present" : "Missing"
+        });
+        console.log("🔍 /me route - Request cookies:", req.cookies);
+        console.log("🔍 /me route - User:", req.user ? "User exists" : "No user");
+        
+        if (!req.user) {
+            return res.status(401).json({ 
+                error: "Authentication required",
+                debug: {
+                    hasCookies: Object.keys(req.cookies).length > 0,
+                    hasSession: !!req.session,
+                    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
+                }
+            });
+        }
+        
+        // If user has a profile method, use it, otherwise return the user object
+        const userData = req.user.profile ? req.user.profile() : req.user;
+        
+        return res.json({ user: userData });
+    } catch (error) {
+        console.error("❌ Error in /me route:", error);
+        return res.status(500).json({ error: "Server error" });
     }
-    
-    console.log("✅ User authenticated:", req.user.email);
-    res.json({ user: req.user.profile ? req.user.profile() : req.user });
 });
 
 router.post(
