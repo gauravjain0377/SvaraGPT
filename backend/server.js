@@ -57,29 +57,16 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cors({
     origin: (origin, callback) => {
-        // In production, we should be strict about origins
-        if (process.env.NODE_ENV === 'production') {
-            // If no origin (like server-to-server requests), allow it
-            if (!origin) {
-                console.log(`✅ CORS allowed for server-to-server request`);
-                return callback(null, true);
-            }
+        const normalizedOrigin = normalizeOrigin(origin);
+        // Log the origin for debugging
+        
+        if (!origin || (normalizedOrigin && allowedOrigins.includes(normalizedOrigin))) {
             
-            const normalizedOrigin = normalizeOrigin(origin);
-            console.log(`🔍 CORS Request from origin: ${origin}`);
-            
-            if (normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) {
-                console.log(`✅ CORS allowed for: ${origin}`);
-                return callback(null, origin);
-            }
-            
-            console.log(`❌ CORS blocked for: ${origin}`);
-            return callback(new Error("Not allowed by CORS"));
-        } else {
-            // In development, be more permissive
-            console.log(`✅ CORS allowed in development for: ${origin || 'server-to-server'}`);
-            return callback(null, origin || true);
+            return callback(null, origin);
         }
+        
+        console.log(`❌ CORS blocked for: ${origin}`);
+        return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -91,16 +78,22 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URL, // Fixed variable name to match the one used in connectDB
+        mongoUrl: process.env.MONGODB_URL,
         ttl: 24 * 60 * 60, // 1 day
         autoRemove: 'native',
-        touchAfter: 24 * 3600 // time period in seconds
+        touchAfter: 24 * 3600, // time period in seconds
+        serialize: (obj) => {
+            return JSON.stringify(obj)
+        },
+        unserialize: (str) => {
+            return JSON.parse(str)
+        }
     }),
     cookie: {
         secure: true, // Always use secure for cross-domain
         sameSite: "none", // Required for cross-site cookies between Vercel and Render
         httpOnly: true,
-        // Remove domain restriction to allow cookies to work across domains
+        domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 24 * 60 * 60 * 1000
     },
     proxy: true // Required when behind a proxy like Render
@@ -133,10 +126,9 @@ const connectDB = async() => {
         await mongoose.connect(process.env.MONGODB_URL, {
             dbName: process.env.MONGODB_DB_NAME || "SvaraGPT_Database"
         });
-        console.log("✅ Connected with Database!");
+        console.log("Connected with Database!");
     } catch(err) {
-        console.error("❌ Failed to connect with Db", err);
-        console.error("MongoDB URL (masked):", process.env.MONGODB_URL ? "***" + process.env.MONGODB_URL.slice(-10) : "Not defined");
+        console.log("Failed to connect with Db", err);
     }
 }
 
