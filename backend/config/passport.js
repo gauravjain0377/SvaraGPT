@@ -11,11 +11,17 @@ passport.use(
             passReqToCallback: true,
             proxy: true,
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (req, accessToken, refreshToken, profile, done) => {
             try {
+                // Check if profile and emails exist
+                if (!profile || !profile.emails || !profile.emails.length) {
+                    console.error("❌ [PASSPORT] Error: Invalid profile data", profile);
+                    return done(new Error("Invalid profile data from Google"), null);
+                }
+                
                 const email = profile.emails[0].value;
                 const googleId = profile.id;
-                const name = profile.displayName;
+                const name = profile.displayName || email.split('@')[0];
 
                 let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
