@@ -1,0 +1,82 @@
+.twofa-verify-container {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  text-align: center;
+}
+
+.twofa-verify-container h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.twofa-verify-container p {
+  margin-bottom: 20px;
+  color: #666;
+}
+
+.twofa-verify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.twofa-input-group {
+  margin-bottom: 15px;
+}
+
+.twofa-code-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.twofa-button-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.twofa-verify-button, 
+.twofa-cancel-button {
+  flex: 1;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.twofa-verify-button {
+  background-color: #4285f4;
+  color: white;
+}
+
+.twofa-verify-button:hover:not(:disabled) {
+  background-color: #3367d6;
+}
+
+.twofa-verify-button:disabled {
+  background-color: #a4c2f4;
+  cursor: not-allowed;
+}
+
+.twofa-cancel-button {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.twofa-cancel-button:hover:not(:disabled) {
+  background-color: #e4e4e4;
+}
+
+.twofa-cancel-button:disabled {
+  color: #999;
+  cursor: not-allowed;
+}

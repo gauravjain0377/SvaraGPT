@@ -393,10 +393,11 @@ function ChatWindow() {
     // Two-Factor Authentication Functions
     const handleEnable2FA = async () => {
         try {
-            const response = await fetch(apiUrl('/api/auth/2fa/setup'), {
+            const response = await fetch(apiUrl('/auth/2fa/setup'), {
                 method: 'POST',
                 credentials: 'include',
             });
+            
             const data = await response.json();
             
             if (response.ok) {
@@ -412,11 +413,11 @@ function ChatWindow() {
 
     const handleVerify2FA = async () => {
         try {
-            const response = await fetch(apiUrl('/api/auth/2fa/verify'), {
+            const response = await fetch(apiUrl('/auth/2fa/verify'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ code: twoFactorCode })
+                body: JSON.stringify({ token: twoFactorCode })
             });
             
             if (response.ok) {
@@ -439,7 +440,7 @@ function ChatWindow() {
         if (!confirm('Are you sure you want to disable Two-Factor Authentication?')) return;
         
         try {
-            const response = await fetch(apiUrl('/api/auth/2fa/disable'), {
+            const response = await fetch(apiUrl('/auth/2fa/disable'), {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -507,7 +508,7 @@ function ChatWindow() {
     useEffect(() => {
         const fetch2FAStatus = async () => {
             try {
-                const response = await fetch(apiUrl('/api/auth/2fa/status'), {
+                const response = await fetch(apiUrl('/auth/2fa/status'), {
                     credentials: 'include',
                 });
                 const data = await response.json();
@@ -1151,7 +1152,7 @@ function ChatWindow() {
                                     <h3>Step 3: Save Backup Codes</h3>
                                     <p>Save these backup codes in a safe place. You can use them if you lose access to your authenticator app.</p>
                                     <div className="twofa-backup-codes">
-                                        {backupCodes.map((code, idx) => (
+                                        {backupCodes && backupCodes.map((code, idx) => (
                                             <div key={idx} className="backup-code">{code}</div>
                                         ))}
                                     </div>

@@ -121,6 +121,14 @@ export const AuthProvider = ({ children }) => {
 
         const data = await response.json();
         
+        // Check if 2FA is required
+        if (data.requiresTwoFactor) {
+            return {
+                requiresTwoFactor: true,
+                tempToken: data.tempToken
+            };
+        }
+        
         // Migrate guest data automatically (backend reads from cookie)
         await migrateGuestData();
         

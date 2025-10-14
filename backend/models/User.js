@@ -19,6 +19,9 @@ const UserSchema = new mongoose.Schema(
         verificationCode: { type: String },
         verificationExpires: { type: Date },
         refreshTokens: [RefreshTokenSchema],
+        twoFactorSecret: { type: String },
+        twoFactorEnabled: { type: Boolean, default: false },
+        twoFactorBackupCodes: [{ type: String }],
     },
     { timestamps: true }
 );
@@ -30,6 +33,7 @@ UserSchema.methods.profile = function profile() {
         name: this.name,
         isVerified: this.isVerified,
         provider: this.googleId ? "google" : "local",
+        twoFactorEnabled: this.twoFactorEnabled || false,
         createdAt: this.createdAt,
         updatedAt: this.updatedAt,
     };
