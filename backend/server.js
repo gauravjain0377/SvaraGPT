@@ -39,7 +39,8 @@ const envAllowedOrigins = [
     .filter(Boolean);
 
 const extraAllowedOrigins = [
-    "https://svaragpt.onrender.com"
+    "https://svaragpt.onrender.com",
+    "https://svaragpt.vercel.app"
 ];
 
 const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins, ...extraAllowedOrigins].filter(Boolean))];
@@ -71,7 +72,8 @@ app.use(session({
         httpOnly: true,
         domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 24 * 60 * 60 * 1000
-    }
+    },
+    proxy: process.env.NODE_ENV === "production"
 }));
 app.use(passportConfig.initialize());
 app.use(passportConfig.session());
