@@ -78,6 +78,15 @@ app.use(session({
 app.use(passportConfig.initialize());
 app.use(passportConfig.session());
 
+// Root route handler
+app.get("/", (req, res) => {
+    res.send({
+        message: "SvaraGPT API is running",
+        status: "online",
+        documentation: "API documentation coming soon"
+    });
+});
+
 app.use("/auth", authRoutes);
 app.use("/api", chatRoutes);
 app.use("/api", projectRoutes);
