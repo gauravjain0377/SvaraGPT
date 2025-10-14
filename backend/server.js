@@ -11,8 +11,14 @@ import migrateRoutes from "./routes/migrate.js";
 import contactRoutes from "./routes/contact.js";
 import passportConfig from "./config/passport.js";
 
+// Set NODE_ENV to 'production' if not set
+if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = process.env.RENDER_EXTERNAL_URL || process.env.VERCEL_URL ? 'production' : 'development';
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+}
+
 const app = express();
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 const normalizeOrigin = (value) => {
     if (!value || typeof value !== "string") return null;
@@ -51,14 +57,20 @@ app.use(express.json());
 app.use(cors({
     origin: (origin, callback) => {
         const normalizedOrigin = normalizeOrigin(origin);
+        // Log the origin for debugging
+        console.log(`🔍 CORS Request from origin: ${origin}`);
+        
         if (!origin || (normalizedOrigin && allowedOrigins.includes(normalizedOrigin))) {
-            
+            console.log(`✅ CORS allowed for: ${origin}`);
             return callback(null, origin);
         }
-       
+        
+        console.log(`❌ CORS blocked for: ${origin}`);
         return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(cookieParser());
 app.use(session({
@@ -66,8 +78,8 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true, // Always use secure cookies in production
-        sameSite: "none", // Required for cross-site cookies (Vercel to Render)
+        secure: true, // Always use secure for cross-domain
+        sameSite: "none", // Required for cross-site cookies between Vercel and Render
         httpOnly: true,
         domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 24 * 60 * 60 * 1000
