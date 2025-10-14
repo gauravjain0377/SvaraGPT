@@ -14,9 +14,10 @@ const router = express.Router();
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production",
-    sameSite: process.env.COOKIE_SAME_SITE || (process.env.NODE_ENV === "production" ? "none" : "lax"),
+    secure: true, // Always use secure cookies in production
+    sameSite: "none", // Required for cross-site cookies (Vercel to Render)
     domain: process.env.COOKIE_DOMAIN || undefined,
+    path: "/", // Ensure cookies are available across all paths
 };
 
 function setAuthCookies(res, { accessToken, refreshToken }) {

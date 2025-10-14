@@ -45,7 +45,6 @@ const extraAllowedOrigins = [
 
 const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins, ...extraAllowedOrigins].filter(Boolean))];
 
-console.log("[CORS] Allowed origins:", allowedOrigins);
 
 app.set("trust proxy", 1);
 app.use(express.json());
@@ -53,10 +52,10 @@ app.use(cors({
     origin: (origin, callback) => {
         const normalizedOrigin = normalizeOrigin(origin);
         if (!origin || (normalizedOrigin && allowedOrigins.includes(normalizedOrigin))) {
-            console.log(`[CORS] Allowed request from origin: ${origin ?? "<no-origin>"}`);
+            
             return callback(null, origin);
         }
-        console.warn(`[CORS] Blocked origin: ${origin}`);
+       
         return callback(new Error("Not allowed by CORS"));
     },
     credentials: true
@@ -67,13 +66,13 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production",
-        sameSite: process.env.COOKIE_SAME_SITE || (process.env.NODE_ENV === "production" ? "none" : "lax"),
+        secure: true, // Always use secure cookies in production
+        sameSite: "none", // Required for cross-site cookies (Vercel to Render)
         httpOnly: true,
         domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 24 * 60 * 60 * 1000
     },
-    proxy: process.env.NODE_ENV === "production"
+    proxy: true // Required when behind a proxy like Render
 }));
 app.use(passportConfig.initialize());
 app.use(passportConfig.session());
