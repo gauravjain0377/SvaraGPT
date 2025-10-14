@@ -91,7 +91,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
+        mongoUrl: process.env.MONGODB_URL, // Fixed variable name to match the one used in connectDB
         ttl: 24 * 60 * 60, // 1 day
         autoRemove: 'native',
         touchAfter: 24 * 3600 // time period in seconds
