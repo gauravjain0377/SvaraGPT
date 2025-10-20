@@ -9,6 +9,11 @@ import logo3 from "./assets/logo3.png";
 import { apiUrl } from "./utils/apiConfig";
 
 function ChatWindow() {
+    // We'll provide these handler functions through context
+    const [activeFeedback, setActiveFeedback] = useState({});
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareData, setShareData] = useState(null);
+    
     const {
         prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
         currentProject, setCurrentProject, projects, setProjects, allThreads, setAllThreads, prevChats
@@ -42,6 +47,116 @@ function ChatWindow() {
 
     const queueRef = useRef([]);
     const isProcessingRef = useRef(false);
+    
+    // Handler for copying user message
+    const handleCopyMessage = (chat) => {
+        if (chat && chat.content) {
+            navigator.clipboard.writeText(chat.content)
+                .then(() => {
+                    console.log('Message copied to clipboard');
+                })
+                .catch(err => {
+                    console.error('Failed to copy message: ', err);
+                });
+        }
+    };
+
+    // Handler for editing user message
+    const handleEditMessage = (chat, content) => {
+        setPrevChats(prev => prev.map(c => 
+            c === chat ? { ...c, isEditing: true, pendingContent: content } : c
+        ));
+    };
+
+    // Handler for confirming edit
+    const handleConfirmEdit = (chat) => {
+        if (!chat.pendingContent || chat.pendingContent.trim() === '') return;
+        
+        // Update the message locally
+        setPrevChats(prev => prev.map(c => 
+            c === chat ? { ...c, content: chat.pendingContent, isEditing: false, edited: true } : c
+        ));
+        
+        // TODO: If needed, update the message on the server
+    };
+
+    // Handler for copying assistant message
+    const handleCopyAssistant = (chat) => {
+        if (chat && chat.content) {
+            navigator.clipboard.writeText(chat.content)
+                .then(() => {
+                    console.log('Assistant message copied to clipboard');
+                })
+                .catch(err => {
+                    console.error('Failed to copy assistant message: ', err);
+                });
+        }
+    };
+
+    // Handler for regenerating assistant response
+    const handleRegenerate = (chat) => {
+        // Find the user message that preceded this assistant message
+        const chatIndex = prevChats.findIndex(c => c === chat);
+        if (chatIndex > 0 && prevChats[chatIndex - 1].role === 'user') {
+            const userMessage = prevChats[chatIndex - 1].content;
+            
+            // Remove this assistant message and all subsequent messages
+            setPrevChats(prev => prev.slice(0, chatIndex));
+            
+            // Trigger a new response
+            getReply(userMessage);
+        }
+    };
+
+    // Handler for feedback (thumbs up/down)
+    const handleFeedbackToggle = (chat, feedbackType) => {
+        if (!chat.messageId) {
+            // Generate a messageId if it doesn't exist
+            const messageId = `msg_${Date.now()}`;
+            setPrevChats(prev => prev.map(c => 
+                c === chat ? { ...c, messageId } : c
+            ));
+            
+            setActiveFeedback(prev => ({
+                ...prev,
+                [messageId]: prev[messageId] === feedbackType ? null : feedbackType
+            }));
+            
+            // TODO: Send feedback to server
+            console.log(`Feedback ${feedbackType} for message ${messageId}`);
+        } else {
+            setActiveFeedback(prev => ({
+                ...prev,
+                [chat.messageId]: prev[chat.messageId] === feedbackType ? null : feedbackType
+            }));
+            
+            // TODO: Send feedback to server
+            console.log(`Feedback ${feedbackType} for message ${chat.messageId}`);
+        }
+    };
+
+    // Handler for sharing thread
+    const shareThread = async (chat) => {
+        try {
+            const response = await fetch(apiUrl('/api/share'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ threadId: currThreadId })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                setShareData(data);
+                setShowShareModal(true);
+            } else {
+                console.error('Error sharing thread:', data.error);
+            }
+        } catch (error) {
+            console.error('Error sharing thread:', error);
+        }
+    };
 
     // Get user initials for avatar
     const getUserInitials = () => {
@@ -1249,6 +1364,58 @@ function ChatWindow() {
                                     <i className="fa-solid fa-right-from-bracket"></i>
                                     Log Out All Other Sessions
                                 </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Share Modal */}
+            {showShareModal && (
+                <div className="share-modal-backdrop" onClick={() => setShowShareModal(false)}>
+                    <div className="share-modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="share-modal-header">
+                            <h2 className="share-modal-title">
+                                <i className="fa-solid fa-share-nodes"></i>
+                                Share Conversation
+                            </h2>
+                            <button className="share-modal-close" onClick={() => setShowShareModal(false)}>
+                                <i className="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="share-modal-body">
+                            {shareData ? (
+                                <>
+                                    <p className="share-description">
+                                        Share this link with others to let them view this conversation:
+                                    </p>
+                                    <div className="share-link-container">
+                                        <input 
+                                            type="text" 
+                                            className="share-link-input" 
+                                            value={`${window.location.origin}/shared/${shareData.shareId}`} 
+                                            readOnly 
+                                        />
+                                        <button 
+                                            className="share-link-copy" 
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(`${window.location.origin}/shared/${shareData.shareId}`);
+                                                alert('Link copied to clipboard!');
+                                            }}
+                                        >
+                                            <i className="fa-solid fa-copy"></i>
+                                            Copy
+                                        </button>
+                                    </div>
+                                    <div className="share-options">
+                                        <p className="share-expiry">
+                                            <i className="fa-solid fa-clock"></i>
+                                            This link will expire in 7 days
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="share-loading">Generating share link...</p>
                             )}
                         </div>
                     </div>

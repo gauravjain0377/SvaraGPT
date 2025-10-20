@@ -195,79 +195,215 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
     }
 
     try {
-        // Use findOneAndUpdate with upsert to prevent race conditions
-        // This will either find an existing thread or create a new one atomically
         let thread;
+        let userMessage;
+
         try {
-            thread = await Thread.findOneAndUpdate(
-                { threadId, userId: req.userId },
-                { 
-                    $setOnInsert: {
-                        threadId,
-                        userId: req.userId,
-                        title: message.substring(0, 100), // Limit title length
-                        createdAt: new Date()
-                    },
-                    $set: {
-                        updatedAt: new Date()
-                    },
-                    $push: {
-                        messages: { role: "user", content: message }
-                    }
-                },
-                { 
-                    new: true, // Return the updated document
-                    upsert: true, // Create if it doesn't exist
-                    runValidators: true
-                }
-            );
+            thread = await Thread.findOne({ threadId, userId: req.userId });
+
+            if (!thread) {
+                thread = new Thread({
+                    threadId,
+                    userId: req.userId,
+                    title: message.substring(0, 100),
+                    messages: [],
+                    projectIds: projectId ? [projectId] : []
+                });
+            } else if (projectId && !thread.projectIds.includes(projectId)) {
+                thread.projectIds.push(projectId);
+            }
+
+            userMessage = {
+                messageId: uuidv4(),
+                role: "user",
+                content: message,
+                timestamp: new Date()
+            };
+
+            thread.messages.push(userMessage);
+            thread.updatedAt = new Date();
+            await thread.save();
         } catch (err) {
-            // Handle duplicate key error
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 console.log('Handling duplicate key error:', err.keyValue);
-                // Generate a new unique threadId
                 const newThreadId = uuidv4();
                 console.log(`Generated new threadId: ${newThreadId} to replace duplicate: ${threadId}`);
-                
-                // Try again with the new threadId
                 thread = await Thread.create({
                     threadId: newThreadId,
                     userId: req.userId,
                     title: message.substring(0, 100),
-                    messages: [{ role: "user", content: message }],
-                    createdAt: new Date(),
-                    updatedAt: new Date()
+                    messages: [{
+                        messageId: uuidv4(),
+                        role: "user",
+                        content: message,
+                        timestamp: new Date()
+                    }],
+                    projectIds: projectId ? [projectId] : []
                 });
+                userMessage = thread.messages[thread.messages.length - 1];
             } else {
                 throw err;
             }
         }
 
-        // If projectId is provided, ensure thread is associated with project
-        if (projectId && !thread.projectIds.includes(projectId)) {
-            thread.projectIds.push(projectId);
-        }
-       
         const assistantReply = await getFastestResponse(message);
 
-        // Update the thread with the assistant's reply
-        thread.messages.push({ role: "assistant", content: assistantReply });
-        thread.lastMessageAt = new Date();
+        const assistantMessage = {
+            messageId: uuidv4(),
+            role: "assistant",
+            content: assistantReply,
+            timestamp: new Date(),
+            parentMessageId: userMessage?.messageId || null
+        };
 
+        thread.messages.push(assistantMessage);
+        thread.lastMessageAt = new Date();
         await thread.save();
 
-        // Increment guest usage count if guest
         if (req.guestUsage) {
             req.guestUsage.totalMessages += 1;
             req.guestUsage.updatedAt = new Date();
             await req.guestUsage.save();
         }
 
-        res.json({ reply: assistantReply, threadId: thread.threadId });
+        res.json({
+            reply: assistantReply,
+            threadId: thread.threadId,
+            userMessage,
+            assistantMessage
+        });
     } catch (err) {
         console.error("Chat endpoint error:", err.message);
         console.error("Full error:", err);
         res.status(500).json({ error: "Failed to generate response", details: err.message });
+    }
+});
+
+router.patch("/chat/:threadId/messages/:messageId", async (req, res) => {
+    const { threadId, messageId } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+        return res.status(400).json({ error: "Content is required" });
+    }
+
+    try {
+        const thread = await Thread.findOne({ threadId, userId: req.userId });
+
+        if (!thread) {
+            return res.status(404).json({ error: "Thread not found" });
+        }
+
+        const messageIndex = thread.messages.findIndex(msg => msg.messageId === messageId && msg.role === "user");
+
+        if (messageIndex === -1) {
+            return res.status(404).json({ error: "Message not found" });
+        }
+
+        thread.messages[messageIndex].content = content;
+        thread.messages[messageIndex].edited = true;
+        thread.messages[messageIndex].timestamp = new Date();
+
+        const assistantIndex = thread.messages.findIndex(msg => msg.parentMessageId === messageId && msg.role === "assistant");
+
+        if (assistantIndex !== -1) {
+            thread.messages.splice(assistantIndex, 1);
+        }
+
+        const assistantReply = await getFastestResponse(content);
+
+        const assistantMessage = {
+            messageId: uuidv4(),
+            role: "assistant",
+            content: assistantReply,
+            timestamp: new Date(),
+            parentMessageId: messageId
+        };
+
+        thread.messages.push(assistantMessage);
+        thread.updatedAt = new Date();
+        thread.lastMessageAt = new Date();
+        await thread.save();
+
+        res.json({
+            userMessage: thread.messages[messageIndex],
+            assistantMessage
+        });
+    } catch (err) {
+        console.error("Edit message error:", err.message);
+        res.status(500).json({ error: "Failed to edit message", details: err.message });
+    }
+});
+
+router.post("/chat/:threadId/messages/:messageId/regenerate", async (req, res) => {
+    const { threadId, messageId } = req.params;
+
+    try {
+        const thread = await Thread.findOne({ threadId, userId: req.userId });
+
+        if (!thread) {
+            return res.status(404).json({ error: "Thread not found" });
+        }
+
+        const message = thread.messages.find(msg => msg.messageId === messageId && msg.role === "user");
+
+        if (!message) {
+            return res.status(404).json({ error: "Message not found" });
+        }
+
+        const assistantIndex = thread.messages.findIndex(msg => msg.parentMessageId === messageId && msg.role === "assistant");
+
+        if (assistantIndex === -1) {
+            return res.status(404).json({ error: "Assistant reply not found" });
+        }
+
+        const assistantReply = await getFastestResponse(message.content);
+
+        thread.messages[assistantIndex].content = assistantReply;
+        thread.messages[assistantIndex].timestamp = new Date();
+        thread.updatedAt = new Date();
+        thread.lastMessageAt = new Date();
+
+        await thread.save();
+
+        res.json({ assistantMessage: thread.messages[assistantIndex] });
+    } catch (err) {
+        console.error("Regenerate message error:", err.message);
+        res.status(500).json({ error: "Failed to regenerate response", details: err.message });
+    }
+});
+
+router.post("/chat/:threadId/messages/:messageId/feedback", async (req, res) => {
+    const { threadId, messageId } = req.params;
+    const { rating } = req.body;
+
+    if (!rating || !["good", "bad"].includes(rating)) {
+        return res.status(400).json({ error: "Invalid rating" });
+    }
+
+    try {
+        const thread = await Thread.findOne({ threadId, userId: req.userId });
+
+        if (!thread) {
+            return res.status(404).json({ error: "Thread not found" });
+        }
+
+        const messageIndex = thread.messages.findIndex(msg => msg.messageId === messageId && msg.role === "assistant");
+
+        if (messageIndex === -1) {
+            return res.status(404).json({ error: "Assistant message not found" });
+        }
+
+        thread.messages[messageIndex].feedback = rating;
+        thread.messages[messageIndex].feedbackAt = new Date();
+        thread.updatedAt = new Date();
+
+        await thread.save();
+
+        res.json({ message: thread.messages[messageIndex] });
+    } catch (err) {
+        console.error("Feedback error:", err.message);
+        res.status(500).json({ error: "Failed to save feedback", details: err.message });
     }
 });
 

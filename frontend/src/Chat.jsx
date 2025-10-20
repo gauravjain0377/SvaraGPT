@@ -8,11 +8,25 @@ import "highlight.js/styles/github-dark.css";
 import logo3 from "./assets/logo3.png";
 
 
-// react-markdown
-// rehype-highlight
-
 function Chat() {
-    const { newChat, prevChats, reply, setPrompt, setPrevChats, setNewChat, setCurrentProject, currThreadId } = useContext(MyContext);
+    const {
+        newChat,
+        prevChats,
+        reply,
+        setPrompt,
+        setPrevChats,
+        setNewChat,
+        setCurrentProject,
+        currThreadId,
+        handleCopyMessage,
+        handleEditMessage,
+        handleConfirmEdit,
+        handleCopyAssistant,
+        handleRegenerate,
+        handleFeedbackToggle,
+        activeFeedback,
+        shareThread
+    } = useContext(MyContext);
     const { user } = useAuth();
     const [latestReply, setLatestReply] = useState(null);
 
@@ -116,7 +130,7 @@ function Chat() {
                         const isLast = idx === prevChats.length - 1;
                         const showStreaming = isAssistant && isLast && latestReply !== null && !chat.isLoading;
                         return (
-                            <div className={isUser ? "messageUser" : "messageAssistant"} key={idx}>
+                            <div className={isUser ? "messageUser" : "messageAssistant"} key={chat.messageId || idx}>
                                 <div className="messageContent">
                                     <div className="messageAvatar">
                                         {isUser ? (
@@ -142,21 +156,120 @@ function Chat() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="messageText">
-                                        {isUser && <p>{chat.content}</p>}
-                                        {isAssistant && chat.isLoading && (
-                                            <div className="typingDots" aria-label="Assistant is typing">
-                                                <span className="dot"></span>
-                                                <span className="dot"></span>
-                                                <span className="dot"></span>
-                                            </div>
-                                        )}
-                                        {isAssistant && !chat.isLoading && !showStreaming && (
-                                            <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{chat.content}</ReactMarkdown>
-                                        )}
-                                        {isAssistant && showStreaming && (
-                                            <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{latestReply}</ReactMarkdown>
-                                        )}
+                                    <div className="messageBody">
+                                        <div className="messageHeader">
+                                            {isUser && chat.edited && <span className="messageBadge">Edited</span>}
+                                        </div>
+                                        <div className="messageText">
+                                            {isUser && !chat.isEditing && <p>{chat.content}</p>}
+                                            {isUser && chat.isEditing && (
+                                                <div className="messageEditRow">
+                                                    <textarea
+                                                        className="messageEditInput"
+                                                        defaultValue={chat.pendingContent ?? chat.content}
+                                                        onChange={(event) => handleEditMessage?.(chat, event.target.value)}
+                                                        aria-label="Edit message"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="messageActionIcon confirmEdit"
+                                                        onClick={() => handleConfirmEdit?.(chat)}
+                                                        aria-label="Confirm edit"
+                                                    >
+                                                        <i className="fa-solid fa-check"></i>
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {isAssistant && chat.isLoading && (
+                                                <div className="typingDots" aria-label="Assistant is typing">
+                                                    <span className="dot"></span>
+                                                    <span className="dot"></span>
+                                                    <span className="dot"></span>
+                                                </div>
+                                            )}
+                                            {isAssistant && !chat.isLoading && showStreaming && (
+                                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                                                    {latestReply || ""}
+                                                </ReactMarkdown>
+                                            )}
+                                            {isAssistant && !chat.isLoading && !showStreaming && (
+                                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                                                    {chat.content}
+                                                </ReactMarkdown>
+                                            )}
+                                        </div>
+                                        <div className="messageActions">
+                                            {isUser ? (
+                                                <div className="messageActionsInner messageActionsUser">
+                                                    <button
+                                                        type="button"
+                                                        className="messageActionIcon"
+                                                        onClick={() => handleCopyMessage?.(chat)}
+                                                        aria-label="Copy message"
+                                                    >
+                                                        <i className="fa-solid fa-copy"></i>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="messageActionIcon"
+                                                        onClick={() => handleEditMessage?.(chat, chat.content)}
+                                                        aria-label="Edit message"
+                                                    >
+                                                        <i className="fa-solid fa-pen-to-square"></i>
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="messageActionsInner messageActionsAssistant">
+                                                    <button
+                                                        type="button"
+                                                        className="messageActionBtn"
+                                                        onClick={() => handleCopyAssistant?.(chat)}
+                                                        aria-label="Copy assistant reply"
+                                                    >
+                                                        <i className="fa-solid fa-copy"></i>
+                                                        <span>Copy</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="messageActionBtn"
+                                                        onClick={() => handleRegenerate?.(chat)}
+                                                        aria-label="Regenerate reply"
+                                                    >
+                                                        <i className="fa-solid fa-repeat"></i>
+                                                        <span>Regenerate</span>
+                                                    </button>
+                                                    <div className="feedbackGroup" role="group" aria-label="Rate response">
+                                                        <button
+                                                            type="button"
+                                                            className={`messageActionBtn ${activeFeedback?.[chat.messageId] === "good" ? "active" : ""}`}
+                                                            onClick={() => handleFeedbackToggle?.(chat, "good")}
+                                                            aria-label="Mark response good"
+                                                        >
+                                                            <i className="fa-solid fa-thumbs-up"></i>
+                                                            <span>Good</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className={`messageActionBtn ${activeFeedback?.[chat.messageId] === "bad" ? "active" : ""}`}
+                                                            onClick={() => handleFeedbackToggle?.(chat, "bad")}
+                                                            aria-label="Mark response bad"
+                                                        >
+                                                            <i className="fa-solid fa-thumbs-down"></i>
+                                                            <span>Bad</span>
+                                                        </button>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="messageActionBtn"
+                                                        onClick={() => shareThread?.(chat)}
+                                                        aria-label="Share thread"
+                                                    >
+                                                        <i className="fa-solid fa-share-nodes"></i>
+                                                        <span>Share</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -165,7 +278,7 @@ function Chat() {
                 </div>
             )}
         </div>
-    )
+    );
 }
 
 export default Chat;

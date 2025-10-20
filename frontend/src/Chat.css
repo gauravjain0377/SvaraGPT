@@ -216,6 +216,7 @@
 .messageText {
     flex: 1;
     min-width: 0;
+    position: relative;
 }
 
 .messageUser .messageText {
@@ -223,6 +224,11 @@
     padding: 12px 16px;
     border-radius: 16px;
     border-top-right-radius: 4px;
+    transition: box-shadow 0.2s ease;
+}
+
+.messageUser .messageText:hover {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 .messageAssistant .messageText {
@@ -253,6 +259,139 @@ pre {
 
 code {
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.messageBody {
+    position: relative;
+}
+
+.messageActions {
+    margin-top: 12px;
+    display: flex;
+    min-height: 0;
+}
+
+.messageActionsInner {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.messageActionsUser {
+    margin-left: auto;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.messageUser .messageText:hover + .messageActions .messageActionsUser,
+.messageUser .messageActions:hover .messageActionsUser,
+.messageUser .messageText:focus-within + .messageActions .messageActionsUser {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.messageActionBtn,
+.messageActionIcon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    color: #ececec;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.messageActionIcon {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+}
+
+.messageActionBtn:hover,
+.messageActionIcon:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.messageActionBtn i,
+.messageActionIcon i {
+    font-size: 14px;
+}
+
+.messageActionBtn span {
+    font-size: 12px;
+    letter-spacing: 0.01em;
+}
+
+.messageActionsAssistant {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.feedbackGroup {
+    display: inline-flex;
+    gap: 8px;
+}
+
+.feedbackGroup .messageActionBtn {
+    min-width: 82px;
+}
+
+.feedbackGroup .messageActionBtn.active {
+    background: rgba(255, 107, 53, 0.15);
+    border-color: rgba(255, 107, 53, 0.5);
+    color: #ff9060;
+}
+
+.feedbackGroup .messageActionBtn.active i {
+    color: #ff9060;
+}
+
+.messageEditRow {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 8px;
+}
+
+.messageEditInput {
+    flex: 1;
+    min-height: 72px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.32);
+    color: #ececec;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.messageEditInput:focus {
+    outline: none;
+    border-color: rgba(255, 107, 53, 0.6);
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
+}
+
+.messageActionIcon.confirmEdit {
+    background: rgba(69, 214, 111, 0.2);
+    border-color: rgba(69, 214, 111, 0.4);
+}
+
+.messageActionIcon.confirmEdit:hover {
+    background: rgba(69, 214, 111, 0.35);
+    border-color: rgba(69, 214, 111, 0.5);
 }
 
 /* Typing loader */

@@ -2,22 +2,42 @@ import './App.css';
 import Sidebar from "./Sidebar.jsx";
 import ChatWindow from "./ChatWindow.jsx";
 import {MyContext} from "./MyContext.jsx";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import {v1 as uuidv1} from "uuid";
 
+// Helper function to determine active section from path
+function getActiveSectionFromPath(path) {
+  if (path.startsWith('/chats')) return 'chats';
+  if (path.startsWith('/projects')) return 'projects';
+  if (path.startsWith('/settings')) return 'settings';
+  return 'home';
+}
+
+// Helper function to determine active settings tab
+function getActiveSettingsTab(path) {
+  if (path.includes('/settings/faq')) return 'faq';
+  if (path.includes('/settings/contact')) return 'contact';
+  if (path.includes('/settings/security')) return 'security';
+  return 'general';
+}
+
 function App() {
+  const params = useParams();
+  const location = useLocation();
   const [prompt, setPrompt] = useState("");
   const [reply, setReply] = useState(null);
-  const [currThreadId, setCurrThreadId] = useState(uuidv1());
+  const [currThreadId, setCurrThreadId] = useState(params.chatId || uuidv1());
   const [prevChats, setPrevChats] = useState([]); //stores all chats of curr threads
-  const [newChat, setNewChat] = useState(true);
+  const [newChat, setNewChat] = useState(!params.chatId);
   const [allThreads, setAllThreads] = useState([]);
-
+  const [activeSection, setActiveSection] = useState(getActiveSectionFromPath(location.pathname));
+  const [activeSettingsTab, setActiveSettingsTab] = useState(getActiveSettingsTab(location.pathname));
 
   // Project Management State
   const [projects, setProjects] = useState([]); // [{id, name, chats: []}]
   const [currentProject, setCurrentProject] = useState(null); // Current project context for new chats
-  const [selectedProject, setSelectedProject] = useState(null); // Selected project in UI
+  const [selectedProject, setSelectedProject] = useState(params.projectId || null); // Selected project in UI
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameTarget, setRenameTarget] = useState(null); // {type: 'project'/'chat', id, currentName}
@@ -27,6 +47,126 @@ function App() {
   const [activeDropdown, setActiveDropdown] = useState(null); // Track which three-dots menu is open
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null); // {type: 'chat'/'project', id, name}
+  const [activeFeedback, setActiveFeedback] = useState({});
+
+  // Update state based on URL changes
+  useEffect(() => {
+    setActiveSection(getActiveSectionFromPath(location.pathname));
+    setActiveSettingsTab(getActiveSettingsTab(location.pathname));
+    
+    // Handle chat ID from URL
+    if (params.chatId && params.chatId !== currThreadId) {
+      setCurrThreadId(params.chatId);
+      setNewChat(false);
+    }
+    
+    // Handle project ID from URL
+    if (params.projectId) {
+      setSelectedProject(params.projectId);
+      
+      // If we have both project ID and chat ID in the URL
+      if (params.chatId) {
+        setCurrThreadId(params.chatId);
+        setNewChat(false);
+      }
+    }
+  }, [location.pathname, params.chatId, params.projectId]);
+
+  // Handler for copying user message
+  const handleCopyMessage = (chat) => {
+    if (chat && chat.content) {
+      navigator.clipboard.writeText(chat.content)
+        .then(() => console.log('Message copied to clipboard'))
+        .catch(err => console.error('Failed to copy message: ', err));
+    }
+  };
+
+  // Handler for editing user message
+  const handleEditMessage = (chat, content) => {
+    setPrevChats(prev => prev.map(c => 
+      c === chat ? { ...c, isEditing: true, pendingContent: content } : c
+    ));
+  };
+
+  // Handler for confirming edit
+  const handleConfirmEdit = (chat) => {
+    if (!chat.pendingContent || chat.pendingContent.trim() === '') return;
+    
+    // Update the message locally
+    setPrevChats(prev => prev.map(c => 
+      c === chat ? { ...c, content: chat.pendingContent, isEditing: false, edited: true } : c
+    ));
+  };
+
+  // Handler for copying assistant message
+  const handleCopyAssistant = (chat) => {
+    if (chat && chat.content) {
+      navigator.clipboard.writeText(chat.content)
+        .then(() => console.log('Assistant message copied to clipboard'))
+        .catch(err => console.error('Failed to copy assistant message: ', err));
+    }
+  };
+
+  // Handler for regenerating assistant response
+  const handleRegenerate = (chat) => {
+    // Find the user message that preceded this assistant message
+    const chatIndex = prevChats.findIndex(c => c === chat);
+    if (chatIndex > 0 && prevChats[chatIndex - 1].role === 'user') {
+      const userMessage = prevChats[chatIndex - 1].content;
+      
+      // Remove this assistant message and all subsequent messages
+      setPrevChats(prev => prev.slice(0, chatIndex));
+      
+      // Set the prompt to trigger a new response
+      setPrompt(userMessage);
+    }
+  };
+
+  // Handler for feedback (thumbs up/down)
+  const handleFeedbackToggle = (chat, feedbackType) => {
+    if (!chat.messageId) {
+      // Generate a messageId if it doesn't exist
+      const messageId = `msg_${Date.now()}`;
+      setPrevChats(prev => prev.map(c => 
+        c === chat ? { ...c, messageId } : c
+      ));
+      
+      setActiveFeedback(prev => ({
+        ...prev,
+        [messageId]: prev[messageId] === feedbackType ? null : feedbackType
+      }));
+      
+      console.log(`Feedback ${feedbackType} for message ${messageId}`);
+    } else {
+      setActiveFeedback(prev => ({
+        ...prev,
+        [chat.messageId]: prev[chat.messageId] === feedbackType ? null : feedbackType
+      }));
+      
+      console.log(`Feedback ${feedbackType} for message ${chat.messageId}`);
+    }
+  };
+
+  // Handler for sharing thread
+  const shareThread = async () => {
+    try {
+      const response = await fetch(`/api/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ threadId: currThreadId })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Thread shared! Share link: ${window.location.origin}/shared/${data.shareId}`);
+      } else {
+        console.error('Error sharing thread');
+      }
+    } catch (error) {
+      console.error('Error sharing thread:', error);
+    }
+  };
 
   const providerValues = {    // passing values
     prompt, setPrompt,
@@ -48,7 +188,20 @@ function App() {
     moveTarget, setMoveTarget,
     activeDropdown, setActiveDropdown,
     showDeleteConfirm, setShowDeleteConfirm,
-    deleteTarget, setDeleteTarget
+    deleteTarget, setDeleteTarget,
+    
+    // Navigation
+    activeSection, setActiveSection,
+    
+    // Chat button handlers
+    handleCopyMessage,
+    handleEditMessage,
+    handleConfirmEdit,
+    handleCopyAssistant,
+    handleRegenerate,
+    handleFeedbackToggle,
+    activeFeedback,
+    shareThread
   };
 
   return (

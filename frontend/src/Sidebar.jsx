@@ -35,11 +35,13 @@ function Sidebar() {
     setMoveTarget,
     activeDropdown,
     setActiveDropdown,
+    activeSection,
+    setActiveSection,
   } = useContext(MyContext);
 
   const { user } = useAuth();
 
-  const [activeSection, setActiveSection] = useState("chats");
+  // Remove local activeSection state since we're now using it from context
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showProjectMenu, setShowProjectMenu] = useState(null);
@@ -231,9 +233,13 @@ function Sidebar() {
     } else {
       setCurrentProject(null);
     }
+    
+    // Update URL to reflect new chat
+    window.history.pushState({}, "", "/chats");
+    setActiveSection("chats");
   };
 
-  const changeThread = async (newThreadId) => {
+  const changeThread = async (newThreadId, projectId = null) => {
     setCurrThreadId(newThreadId);
 
     try {
@@ -246,6 +252,13 @@ function Sidebar() {
       setPrevChats(res);
       setNewChat(false);
       setReply(null);
+      
+      // Update URL to include chat ID
+      if (projectId) {
+        window.history.pushState({}, "", `/projects/${projectId}/chats/${newThreadId}`);
+      } else {
+        window.history.pushState({}, "", `/chats/${newThreadId}`);
+      }
     } catch (err) {
       console.log(err);
     }
@@ -606,14 +619,20 @@ function Sidebar() {
       <div className="navTabs">
         <div
           className={`navTab ${activeSection === "chats" ? "active" : ""}`}
-          onClick={() => setActiveSection("chats")}
+          onClick={() => {
+            setActiveSection("chats");
+            window.history.pushState({}, "", "/chats");
+          }}
         >
           <i className="fa-solid fa-comment"></i>
           <span>Chats</span>
         </div>
         <div
           className={`navTab ${activeSection === "projects" ? "active" : ""}`}
-          onClick={() => setActiveSection("projects")}
+          onClick={() => {
+            setActiveSection("projects");
+            window.history.pushState({}, "", "/projects");
+          }}
         >
           <i className="fa-solid fa-folder"></i>
           <span>Projects</span>
@@ -819,7 +838,7 @@ function Sidebar() {
                           className={`threadItem ${
                             chat.threadId === currThreadId ? "active" : ""
                           }`}
-                          onClick={() => changeThread(chat.threadId)}
+                          onClick={() => changeThread(chat.threadId, project.id)}
                         >
                           <div className="threadContent">
                             <span className="threadTitle">{chat.title}</span>

@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
 const MessageSchema = new mongoose.Schema({
+    messageId: {
+        type: String,
+        default: uuidv4,
+        index: true
+    },
     role: {
         type: String,
         enum: ["user", "assistant", "system"],
@@ -13,6 +19,23 @@ const MessageSchema = new mongoose.Schema({
     timestamp: {
         type: Date,
         default: Date.now
+    },
+    edited: {
+        type: Boolean,
+        default: false
+    },
+    parentMessageId: {
+        type: String,
+        default: null
+    },
+    feedback: {
+        type: String,
+        enum: [null, "good", "bad"],
+        default: null
+    },
+    feedbackAt: {
+        type: Date,
+        default: null
     },
     metadata: {
         type: mongoose.Schema.Types.Mixed,
