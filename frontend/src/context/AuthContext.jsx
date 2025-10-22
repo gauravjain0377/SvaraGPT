@@ -15,6 +15,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
     const [guestId, setGuestId] = useState(null);
     const location = useLocation();
 
@@ -41,6 +42,7 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
         } finally {
             setLoading(false);
+            setIsInitialized(true);
         }
     };
 
@@ -235,6 +237,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         loading,
+        isInitialized,
         login,
         register,
         verify,
