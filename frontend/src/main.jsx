@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import Login from './components/auth/Login.jsx'
 import Register from './components/auth/Register.jsx'
+import ActiveSessions from './components/Settings/ActiveSessions.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 
 createRoot(document.getElementById('root')).render(
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/settings/sessions" element={<ActiveSessions />} />
           <Route path="/home" element={<Navigate to="/chats" replace />} />
           <Route path="/chats" element={<App />} />
           <Route path="/chats/:chatId" element={<App />} />

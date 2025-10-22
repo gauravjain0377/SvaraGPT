@@ -1346,7 +1346,7 @@ function ChatWindow() {
                                                     <i className="fa-solid fa-devices"></i>
                                                     Active Sessions
                                                 </div>
-                                                <button className="settings-action-btn" onClick={fetchActiveSessions}>
+                                                <button className="settings-action-btn" onClick={() => navigate('/settings/sessions')}>
                                                     <i className="fa-solid fa-eye"></i> View All
                                                 </button>
                                             </div>

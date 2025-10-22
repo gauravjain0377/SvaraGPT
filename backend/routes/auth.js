@@ -8,6 +8,7 @@ import qrcode from "qrcode";
 import crypto from "crypto";
 import { UAParser } from "ua-parser-js";
 import geoip from "geoip-lite";
+import { getGeolocation, getCountryFlag } from "../utils/geolocation.js";
 
 import User from "../models/User.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../utils/mailer.js";
@@ -820,18 +821,18 @@ async function issueTokens(user, req) {
     const os = uaResult.os.name || "Unknown OS";
     const osVersion = uaResult.os.version || "";
     
-    // Get location from IP using geoip-lite
+    // Get location from IP using geolocation API
     let location = "Unknown";
     let country = "Unknown";
+    let countryCode = "XX";
     let city = "Unknown";
     
     if (ip && ip !== "unknown" && !ip.includes('::1') && !ip.includes('127.0.0.1')) {
-        const geo = geoip.lookup(ip);
-        if (geo) {
-            country = geo.country || "Unknown";
-            city = geo.city || "Unknown";
-            location = city !== "Unknown" ? `${city}, ${country}` : country;
-        }
+        const geoData = await getGeolocation(ip);
+        country = geoData.country;
+        countryCode = geoData.countryCode;
+        city = geoData.city;
+        location = city !== "Unknown" ? `${city}, ${country}` : country;
     }
 
     user.refreshTokens.push({
@@ -842,6 +843,9 @@ async function issueTokens(user, req) {
         browser: browserVersion ? `${browser} ${browserVersion}` : browser,
         os: osVersion ? `${os} ${osVersion}` : os,
         location,
+        country,
+        countryCode,
+        city,
         createdAt: new Date(),
         lastActive: new Date(),
     });
@@ -1033,41 +1037,28 @@ router.get("/sessions", authGuard, async (req, res) => {
             const sessionId = crypto.createHash('sha256').update(t.token).digest('hex').slice(0, 24);
             const isCurrent = currentRefreshToken === t.token;
             
-            // Format last active time
-            const lastActiveDate = new Date(t.lastActive || t.createdAt);
-            const now = new Date();
-            const diffMs = now - lastActiveDate;
-            const diffMins = Math.floor(diffMs / 60000);
-            
-            let lastActiveStr;
-            if (diffMins < 1) lastActiveStr = 'Just now';
-            else if (diffMins < 60) lastActiveStr = `${diffMins} min ago`;
-            else if (diffMins < 1440) lastActiveStr = `${Math.floor(diffMins / 60)} hours ago`;
-            else lastActiveStr = `${Math.floor(diffMins / 1440)} days ago`;
-            
-            // Format login time
-            const loginDate = new Date(t.createdAt);
-            const loginTimeStr = loginDate.toLocaleDateString('en-US', { 
-                day: 'numeric', 
-                month: 'short', 
-                year: 'numeric' 
-            });
-            
             // Get device type from user agent or stored device field
             let deviceType = t.device || 'desktop';
             if (deviceType === 'mobile') deviceType = 'mobile';
             else if (deviceType === 'tablet') deviceType = 'tablet';
             else deviceType = 'desktop';
             
+            // Get country flag
+            const countryCode = t.countryCode || 'XX';
+            const flag = getCountryFlag(countryCode);
+            
             return {
                 id: sessionId,
                 device: t.os || 'Unknown OS',
                 browser: t.browser || 'Unknown Browser',
-                country: t.location || 'Unknown Location',
                 ip: t.ip || 'Unknown IP',
-                loginTime: loginTimeStr,
-                lastActive: lastActiveStr,
-                createdAt: t.createdAt,
+                country: t.country || 'Unknown',
+                countryCode: countryCode,
+                city: t.city || 'Unknown',
+                location: t.location || 'Unknown',
+                flag: flag,
+                loginTime: t.createdAt,
+                lastActive: t.lastActive || t.createdAt,
                 deviceType: deviceType,
                 current: isCurrent
             };
@@ -1077,7 +1068,7 @@ router.get("/sessions", authGuard, async (req, res) => {
         sessions.sort((a, b) => {
             if (a.current && !b.current) return -1;
             if (!a.current && b.current) return 1;
-            return new Date(b.createdAt) - new Date(a.createdAt);
+            return new Date(b.lastActive) - new Date(a.lastActive);
         });
         
         res.json({ sessions });
