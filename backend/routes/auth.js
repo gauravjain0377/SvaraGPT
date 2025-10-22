@@ -191,9 +191,11 @@ router.post(
                         window: 1
                     });
                     
-                    // Also check backup codes
+                    // Also check backup codes (case-insensitive)
                     const isBackupCode = user.twoFactorBackupCodes && 
-                                        user.twoFactorBackupCodes.includes(req.body.token);
+                                        user.twoFactorBackupCodes.some(code => 
+                                            code.toUpperCase() === req.body.token.toUpperCase()
+                                        );
                     
                     if (!verified && !isBackupCode) {
                         return res.status(401).json({ error: "Invalid 2FA code." });
@@ -202,7 +204,7 @@ router.post(
                     // If backup code was used, remove it
                     if (isBackupCode) {
                         user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(
-                            code => code !== req.body.token
+                            code => code.toUpperCase() !== req.body.token.toUpperCase()
                         );
                         await user.save();
                     }
@@ -519,10 +521,12 @@ router.post("/2fa/verify", authGuard, async (req, res) => {
         // Enable 2FA
         req.user.twoFactorEnabled = true;
         
-        // Generate backup codes (optional)
-        const backupCodes = Array(5).fill().map(() => 
-            Math.random().toString(36).substring(2, 8).toUpperCase()
-        );
+        // Generate backup codes (10 hexadecimal codes)
+        const backupCodes = [];
+        for (let i = 0; i < 10; i++) {
+            const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+            backupCodes.push(code);
+        }
         req.user.twoFactorBackupCodes = backupCodes;
         
         await req.user.save();
@@ -544,19 +548,24 @@ router.post("/2fa/disable", authGuard, async (req, res) => {
         const { token } = req.body;
         
         if (!req.user.twoFactorEnabled) {
-            return res.status(400).json({ error: "Two-factor authentication is not enabled" });
+            return res.status(400).json({ success: false, error: "Two-factor authentication is not enabled" });
         }
         
-        // Verify the token if provided
+        // If token is provided, verify it
         if (token) {
             const verified = speakeasy.totp.verify({
                 secret: req.user.twoFactorSecret,
                 encoding: 'base32',
-                token: token
+                token: token,
+                window: 1
             });
             
-            if (!verified) {
-                return res.status(400).json({ error: "Invalid verification code" });
+            // Also check backup codes
+            const isBackupCode = req.user.twoFactorBackupCodes && 
+                                req.user.twoFactorBackupCodes.includes(token.toUpperCase());
+            
+            if (!verified && !isBackupCode) {
+                return res.status(400).json({ success: false, error: "Invalid verification code" });
             }
         }
         
@@ -573,7 +582,59 @@ router.post("/2fa/disable", authGuard, async (req, res) => {
         });
     } catch (error) {
         console.error("2FA disable error:", error);
-        res.status(500).json({ error: "Failed to disable two-factor authentication" });
+        res.status(500).json({ success: false, error: "Failed to disable two-factor authentication" });
+    }
+});
+
+// 2FA regenerate backup codes endpoint
+router.post("/2fa/regenerate-backup-codes", authGuard, async (req, res) => {
+    try {
+        if (!req.user.twoFactorEnabled) {
+            return res.status(400).json({ success: false, error: "Two-factor authentication is not enabled" });
+        }
+        
+        // Generate new backup codes (10 random codes)
+        const backupCodes = [];
+        for (let i = 0; i < 10; i++) {
+            const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+            backupCodes.push(code);
+        }
+        
+        // Update user's backup codes
+        req.user.twoFactorBackupCodes = backupCodes;
+        await req.user.save();
+        
+        res.json({
+            success: true,
+            backupCodes: backupCodes,
+            message: "Backup codes regenerated successfully"
+        });
+    } catch (error) {
+        console.error("Regenerate backup codes error:", error);
+        res.status(500).json({ success: false, error: "Failed to regenerate backup codes" });
+    }
+});
+
+// 2FA get backup codes endpoint - Returns existing backup codes
+router.get("/2fa/backup-codes", authGuard, async (req, res) => {
+    try {
+        if (!req.user.twoFactorEnabled) {
+            return res.status(400).json({ success: false, error: "Two-factor authentication is not enabled" });
+        }
+        
+        // Return existing backup codes
+        const backupCodes = req.user.twoFactorBackupCodes || [];
+        const remainingCodes = backupCodes.length;
+        
+        res.json({
+            success: true,
+            backupCodes: backupCodes,
+            remainingCodes: remainingCodes,
+            message: `You have ${remainingCodes} backup code(s) remaining`
+        });
+    } catch (error) {
+        console.error("Get backup codes error:", error);
+        res.status(500).json({ success: false, error: "Failed to retrieve backup codes" });
     }
 });
 
@@ -625,9 +686,9 @@ router.post("/login/verify", async (req, res) => {
             window: 1 // Allow 30 seconds before/after
         });
         
-        // Check backup codes
+        // Check backup codes (case-insensitive)
         const isBackupCode = user.twoFactorBackupCodes && 
-                            user.twoFactorBackupCodes.includes(token);
+                            user.twoFactorBackupCodes.some(code => code.toUpperCase() === token.toUpperCase());
         
         if (!verified && !isBackupCode) {
             return res.status(401).json({ 
@@ -638,7 +699,9 @@ router.post("/login/verify", async (req, res) => {
         
         // If using backup code, remove it
         if (isBackupCode) {
-            user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(code => code !== token);
+            user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(
+                code => code.toUpperCase() !== token.toUpperCase()
+            );
             await user.save();
         }
         

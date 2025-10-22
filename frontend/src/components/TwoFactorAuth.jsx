@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useContext } from 'react';
 import { MyContext } from '../MyContext';
@@ -14,6 +15,7 @@ const TwoFactorAuth = () => {
   const [success, setSuccess] = useState('');
   const [disableCode, setDisableCode] = useState('');
   const [showBackupCodes, setShowBackupCodes] = useState(false);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -85,11 +87,77 @@ const TwoFactorAuth = () => {
         setDisableCode('');
         setUser({ ...user, twoFactorEnabled: false });
         await fetchStatus();
+        // Auto-hide success message after 3 seconds
+        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
       setError(error.response?.data?.error || 'Failed to disable 2FA');
       console.error('2FA disable error:', error);
     }
+  };
+
+  const handleViewBackupCodes = async () => {
+    try {
+      setError('');
+      setSuccess('');
+      
+      const response = await axios.get('/api/auth/2fa/backup-codes');
+      
+      if (response.data.success) {
+        setBackupCodes(response.data.backupCodes);
+        setShowBackupCodes(true);
+        setShowRegenerateConfirm(false);
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || 'Failed to retrieve backup codes');
+      console.error('Get backup codes error:', error);
+    }
+  };
+
+  const handleRegenerateBackupCodes = async () => {
+    try {
+      setError('');
+      setSuccess('');
+      
+      const response = await axios.post('/api/auth/2fa/regenerate-backup-codes');
+      
+      if (response.data.success) {
+        setBackupCodes(response.data.backupCodes);
+        setShowBackupCodes(true);
+        setShowRegenerateConfirm(false);
+        setSuccess('Backup codes regenerated successfully. Please save them securely.');
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || 'Failed to regenerate backup codes');
+      console.error('Regenerate backup codes error:', error);
+    }
+  };
+
+  const handleCopyBackupCodes = () => {
+    const codesText = backupCodes.join('\n');
+    navigator.clipboard.writeText(codesText).then(() => {
+      setSuccess('Backup codes copied to clipboard!');
+      setTimeout(() => setSuccess(''), 2000);
+    }).catch(() => {
+      setError('Failed to copy backup codes');
+    });
+  };
+
+  const handleDownloadBackupCodes = () => {
+    const codesText = backupCodes.join('\n');
+    const blob = new Blob([`SvaraGPT 2FA Backup Codes
+
+Generated: ${new Date().toLocaleString()}
+
+${codesText}
+
+Keep these codes safe. Each code can only be used once.`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `svaragpt-backup-codes-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleCancel = () => {
@@ -163,17 +231,44 @@ const TwoFactorAuth = () => {
       
       {showBackupCodes && (
         <div className="backup-codes">
-          <h3>Backup Codes</h3>
-          <p>
-            Save these backup codes in a secure place. You can use these codes to sign in
-            if you lose access to your authenticator app. Each code can only be used once.
-          </p>
-          <div className="codes-list">
-            {backupCodes.map((code, index) => (
-              <div key={index} className="backup-code">{code}</div>
-            ))}
+          <h3>
+            <i className="fa-solid fa-shield-halved"></i> Backup Codes
+          </h3>
+          <div className="backup-codes-info">
+            <p className="info-text">
+              <i className="fa-solid fa-info-circle"></i>
+              Save these backup codes in a secure place. You can use these codes to sign in
+              if you lose access to your authenticator app. Each code can only be used once.
+            </p>
+            <p className="codes-remaining">
+              <strong>{backupCodes.length}</strong> code(s) remaining
+            </p>
           </div>
-          <button onClick={() => setShowBackupCodes(false)}>Close</button>
+          <div className="codes-list">
+            {backupCodes.length > 0 ? (
+              backupCodes.map((code, index) => (
+                <div key={index} className="backup-code">
+                  <i className="fa-solid fa-key"></i> {code}
+                </div>
+              ))
+            ) : (
+              <div className="no-codes">
+                <i className="fa-solid fa-exclamation-circle"></i>
+                <p>No backup codes available. Please regenerate new codes.</p>
+              </div>
+            )}
+          </div>
+          <div className="backup-codes-actions">
+            <button className="copy-button" onClick={handleCopyBackupCodes} disabled={backupCodes.length === 0}>
+              <i className="fa-solid fa-copy"></i> Copy All
+            </button>
+            <button className="download-button" onClick={handleDownloadBackupCodes} disabled={backupCodes.length === 0}>
+              <i className="fa-solid fa-download"></i> Download
+            </button>
+            <button className="close-button" onClick={() => setShowBackupCodes(false)}>
+              <i className="fa-solid fa-times"></i> Close
+            </button>
+          </div>
         </div>
       )}
       
@@ -182,7 +277,37 @@ const TwoFactorAuth = () => {
           <p>
             Two-factor authentication is currently enabled for your account.
           </p>
+          
+          <div className="backup-codes-section">
+            <h3>Backup Codes</h3>
+            <p>
+              Backup codes let you access your account if you lose your authenticator device.
+              Each code can only be used once.
+            </p>
+            <div className="backup-codes-buttons">
+              <button className="view-codes-button" onClick={handleViewBackupCodes}>
+                <i className="fa-solid fa-eye"></i> View Backup Codes
+              </button>
+              <button className="regenerate-codes-button" onClick={() => setShowRegenerateConfirm(true)}>
+                <i className="fa-solid fa-rotate"></i> Regenerate Codes
+              </button>
+            </div>
+            {showRegenerateConfirm && (
+              <div className="regenerate-confirm">
+                <p className="warning-text">
+                  <i className="fa-solid fa-exclamation-triangle"></i>
+                  This will invalidate all your existing backup codes. Are you sure?
+                </p>
+                <div className="button-group">
+                  <button onClick={handleRegenerateBackupCodes}>Yes, Regenerate</button>
+                  <button className="cancel-button" onClick={() => setShowRegenerateConfirm(false)}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+          
           <div className="disable-form">
+            <h3>Disable Two-Factor Authentication</h3>
             <input
               type="text"
               value={disableCode}

@@ -8,6 +8,7 @@ const TwoFactorVerify = ({ tempToken, onCancel }) => {
     const [code, setCode] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [useBackupCode, setUseBackupCode] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -20,7 +21,7 @@ const TwoFactorVerify = ({ tempToken, onCancel }) => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ token: code, tempToken }),
+                body: JSON.stringify({ token: code.toUpperCase(), tempToken }),
             });
 
             const data = await response.json();
@@ -28,7 +29,7 @@ const TwoFactorVerify = ({ tempToken, onCancel }) => {
             if (response.ok) {
                 navigate("/chats");
             } else {
-                setError(data.error || "Verification failed");
+                setError(data.error || data.message || "Verification failed");
             }
         } catch (err) {
             setError("An error occurred during verification");
@@ -41,7 +42,11 @@ const TwoFactorVerify = ({ tempToken, onCancel }) => {
     return (
         <div className="twofa-verify-container">
             <h2>Two-Factor Authentication</h2>
-            <p>Enter the 6-digit code from your authenticator app</p>
+            <p>
+                {useBackupCode 
+                    ? "Enter one of your backup codes" 
+                    : "Enter the 6-digit code from your authenticator app"}
+            </p>
 
             {error && <div className="auth-error">{error}</div>}
 
@@ -50,13 +55,35 @@ const TwoFactorVerify = ({ tempToken, onCancel }) => {
                     <input
                         type="text"
                         value={code}
-                        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").substring(0, 6))}
-                        placeholder="000000"
-                        maxLength="6"
+                        onChange={(e) => {
+                            if (useBackupCode) {
+                                setCode(e.target.value.toUpperCase());
+                            } else {
+                                setCode(e.target.value.replace(/\D/g, "").substring(0, 6));
+                            }
+                        }}
+                        placeholder={useBackupCode ? "XXXXXXXX" : "000000"}
+                        maxLength={useBackupCode ? 16 : 6}
                         required
                         autoFocus
                         className="twofa-code-input"
                     />
+                </div>
+
+                <div className="twofa-toggle">
+                    <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => {
+                            setUseBackupCode(!useBackupCode);
+                            setCode("");
+                            setError("");
+                        }}
+                    >
+                        {useBackupCode 
+                            ? "Use authenticator code instead" 
+                            : "Use backup code instead"}
+                    </button>
                 </div>
 
                 <div className="twofa-button-group">
@@ -71,7 +98,7 @@ const TwoFactorVerify = ({ tempToken, onCancel }) => {
                     <button 
                         type="submit" 
                         className="twofa-verify-button" 
-                        disabled={code.length !== 6 || loading}
+                        disabled={(useBackupCode ? code.length < 6 : code.length !== 6) || loading}
                     >
                         {loading ? "Verifying..." : "Verify"}
                     </button>

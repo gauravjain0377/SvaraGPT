@@ -45,6 +45,7 @@ function ChatWindow() {
     const [disable2FACode, setDisable2FACode] = useState('');
     const [disable2FAError, setDisable2FAError] = useState('');
     const [isDisabling2FA, setIsDisabling2FA] = useState(false);
+    const [disable2FASuccess, setDisable2FASuccess] = useState('');
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
     const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
     const [passwordError, setPasswordError] = useState('');
@@ -53,6 +54,10 @@ function ChatWindow() {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [copyToast, setCopyToast] = useState(false);
+    const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
+    const [viewedBackupCodes, setViewedBackupCodes] = useState([]);
+    const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
     // Close dropdown when user state changes
     useEffect(() => {
@@ -547,7 +552,7 @@ function ChatWindow() {
             
             if (response.ok) {
                 setQrCode(data.qrCode);
-                setBackupCodes(data.backupCodes);
+                setBackupCodes([]); // Clear any previous backup codes
                 setTwoFactorStep('verify');
                 setShowTwoFactorModal(true);
             }
@@ -565,19 +570,73 @@ function ChatWindow() {
                 body: JSON.stringify({ token: twoFactorCode })
             });
             
-            if (response.ok) {
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Store the backup codes from the response
+                setBackupCodes(data.backupCodes || []);
                 setTwoFactorEnabled(true);
-                setTwoFactorStep('success');
-                setTimeout(() => {
-                    setShowTwoFactorModal(false);
-                    setTwoFactorStep('setup');
-                    setTwoFactorCode('');
-                }, 3000);
+                setTwoFactorStep('codes'); // New step to show backup codes
+                // Don't auto-close, let user see and save backup codes
             } else {
-                alert('Invalid code. Please try again.');
+                alert(data.error || 'Invalid code. Please try again.');
             }
         } catch (error) {
             console.error('Error verifying 2FA:', error);
+            alert('Error verifying 2FA. Please try again.');
+        }
+    };
+
+    const handleComplete2FASetup = () => {
+        setShowTwoFactorModal(false);
+        setTwoFactorStep('setup');
+        setTwoFactorCode('');
+        setBackupCodes([]);
+    };
+
+    // View existing backup codes
+    const handleViewBackupCodes = async () => {
+        try {
+            const response = await fetch(apiUrl('/auth/2fa/backup-codes'), {
+                credentials: 'include',
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                setViewedBackupCodes(data.backupCodes || []);
+                setShowBackupCodesModal(true);
+                setShowRegenerateConfirm(false);
+            } else {
+                alert(data.error || 'Failed to retrieve backup codes');
+            }
+        } catch (error) {
+            console.error('Error fetching backup codes:', error);
+            alert('Failed to retrieve backup codes');
+        }
+    };
+
+    // Regenerate backup codes
+    const handleRegenerateBackupCodes = async () => {
+        try {
+            const response = await fetch(apiUrl('/auth/2fa/regenerate-backup-codes'), {
+                method: 'POST',
+                credentials: 'include',
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                setViewedBackupCodes(data.backupCodes || []);
+                setShowBackupCodesModal(true);
+                setShowRegenerateConfirm(false);
+                setCopyToast(false);
+            } else {
+                alert(data.error || 'Failed to regenerate backup codes');
+            }
+        } catch (error) {
+            console.error('Error regenerating backup codes:', error);
+            alert('Failed to regenerate backup codes');
         }
     };
 
@@ -608,9 +667,15 @@ function ChatWindow() {
             
             if (response.ok) {
                 setTwoFactorEnabled(false);
-                setShowDisable2FAModal(false);
+                setDisable2FASuccess('Two-Factor Authentication has been disabled successfully.');
                 setDisable2FACode('');
-                alert('Two-Factor Authentication has been disabled successfully.');
+                setDisable2FAError('');
+                
+                // Auto-close modal after 2 seconds
+                setTimeout(() => {
+                    setShowDisable2FAModal(false);
+                    setDisable2FASuccess('');
+                }, 2000);
             } else {
                 setDisable2FAError(data.message || 'Invalid verification code');
             }
@@ -1253,6 +1318,26 @@ function ChatWindow() {
                                                     ? 'Your account is protected with Two-Factor Authentication. You will need to enter a code from your authenticator app when logging in.'
                                                     : 'Add an extra layer of security to your account with 2FA. You will need an authenticator app like Google Authenticator or Authy.'}
                                             </div>
+                                            
+                                            {twoFactorEnabled && (
+                                                <div className="settings-backup-codes-section">
+                                                    <div className="settings-item-label">
+                                                        <i className="fa-solid fa-key"></i>
+                                                        Backup Codes
+                                                    </div>
+                                                    <div className="settings-item-description" style={{marginBottom: '12px'}}>
+                                                        Backup codes let you access your account if you lose your authenticator device. Each code can only be used once.
+                                                    </div>
+                                                    <div className="settings-backup-actions">
+                                                        <button className="settings-action-btn" onClick={handleViewBackupCodes}>
+                                                            <i className="fa-solid fa-eye"></i> View Backup Codes
+                                                        </button>
+                                                        <button className="settings-action-btn" onClick={() => setShowRegenerateConfirm(true)}>
+                                                            <i className="fa-solid fa-rotate"></i> Regenerate Codes
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                         
                                         <div className="settings-item">
@@ -1407,17 +1492,8 @@ function ChatWindow() {
                                         maxLength="6"
                                         value={twoFactorCode}
                                         onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
+                                        autoFocus
                                     />
-                                </div>
-                                
-                                <div className="twofa-step">
-                                    <h3>Step 3: Save Backup Codes</h3>
-                                    <p>Save these backup codes in a safe place. You can use them if you lose access to your authenticator app.</p>
-                                    <div className="twofa-backup-codes">
-                                        {backupCodes && backupCodes.map((code, idx) => (
-                                            <div key={idx} className="backup-code">{code}</div>
-                                        ))}
-                                    </div>
                                 </div>
                                 
                                 <button 
@@ -1427,6 +1503,85 @@ function ChatWindow() {
                                 >
                                     <i className="fa-solid fa-check"></i>
                                     Verify and Enable
+                                </button>
+                            </div>
+                        )}
+                        
+                        {twoFactorStep === 'codes' && (
+                            <div className="twofa-modal-body">
+                                <div className="twofa-success-icon">
+                                    <i className="fa-solid fa-circle-check"></i>
+                                </div>
+                                <h3>Two-Factor Authentication Enabled!</h3>
+                                <p className="twofa-success-text">Your account is now protected with 2FA.</p>
+                                
+                                <div className="twofa-step">
+                                    <h3>Save Your Backup Codes</h3>
+                                    <p className="twofa-warning-text">
+                                        <i className="fa-solid fa-triangle-exclamation"></i>
+                                        Save these backup codes in a secure place. Each code can only be used once.
+                                    </p>
+                                    <div className="twofa-backup-codes">
+                                        {backupCodes && backupCodes.length > 0 ? (
+                                            backupCodes.map((code, idx) => (
+                                                <div key={idx} className="backup-code">
+                                                    <i className="fa-solid fa-key"></i> {code}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="no-codes">No backup codes available</p>
+                                        )}
+                                    </div>
+                                    <div className="twofa-codes-actions">
+                                        <button 
+                                            className="twofa-copy-btn"
+                                            onClick={() => {
+                                                const codesText = backupCodes.join('\n');
+                                                navigator.clipboard.writeText(codesText).then(() => {
+                                                    setCopyToast(true);
+                                                    setTimeout(() => setCopyToast(false), 2000);
+                                                });
+                                            }}
+                                            disabled={!backupCodes || backupCodes.length === 0}
+                                        >
+                                            <i className="fa-solid fa-copy"></i>
+                                            Copy All Codes
+                                        </button>
+                                        <button 
+                                            className="twofa-download-btn"
+                                            onClick={() => {
+                                                const codesText = backupCodes.join('\n');
+                                                const blob = new Blob(
+                                                    [`SvaraGPT 2FA Backup Codes
+
+Generated: ${new Date().toLocaleString()}
+
+${codesText}
+
+Keep these codes safe. Each code can only be used once.`], 
+                                                    { type: 'text/plain' }
+                                                );
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = `svaragpt-backup-codes-${Date.now()}.txt`;
+                                                a.click();
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            disabled={!backupCodes || backupCodes.length === 0}
+                                        >
+                                            <i className="fa-solid fa-download"></i>
+                                            Download Codes
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <button 
+                                    className="twofa-done-btn"
+                                    onClick={handleComplete2FASetup}
+                                >
+                                    <i className="fa-solid fa-check"></i>
+                                    Done
                                 </button>
                             </div>
                         )}
@@ -1463,6 +1618,13 @@ function ChatWindow() {
                                 <i className="fa-solid fa-triangle-exclamation"></i>
                                 <p>Disabling 2FA will make your account less secure. You will only need your password to log in.</p>
                             </div>
+                            
+                            {disable2FASuccess && (
+                                <div className="twofa-success-message">
+                                    <i className="fa-solid fa-circle-check"></i>
+                                    {disable2FASuccess}
+                                </div>
+                            )}
                             
                             <div className="twofa-step">
                                 <h3>Enter Verification Code</h3>
@@ -1650,6 +1812,136 @@ function ChatWindow() {
                 </div>
             )}
 
+            {/* View Backup Codes Modal */}
+            {showBackupCodesModal && (
+                <div className="twofa-modal-backdrop" onClick={() => setShowBackupCodesModal(false)}>
+                    <div className="twofa-modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="twofa-modal-header">
+                            <h2 className="twofa-modal-title">
+                                <i className="fa-solid fa-shield-halved"></i>
+                                Backup Codes
+                            </h2>
+                            <button className="twofa-modal-close" onClick={() => setShowBackupCodesModal(false)}>
+                                <i className="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="twofa-modal-body">
+                            <div className="twofa-step">
+                                <p className="twofa-warning-text">
+                                    <i className="fa-solid fa-triangle-exclamation"></i>
+                                    Save these backup codes in a secure place. Each code can only be used once.
+                                </p>
+                                <p className="codes-remaining">
+                                    <strong>{viewedBackupCodes.length}</strong> code(s) remaining
+                                </p>
+                                <div className="twofa-backup-codes">
+                                    {viewedBackupCodes && viewedBackupCodes.length > 0 ? (
+                                        viewedBackupCodes.map((code, idx) => (
+                                            <div key={idx} className="backup-code">
+                                                <i className="fa-solid fa-key"></i> {code}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="no-codes">No backup codes available. Please regenerate new codes.</p>
+                                    )}
+                                </div>
+                                <div className="twofa-codes-actions">
+                                    <button 
+                                        className="twofa-copy-btn"
+                                        onClick={() => {
+                                            const codesText = viewedBackupCodes.join('\n');
+                                            navigator.clipboard.writeText(codesText).then(() => {
+                                                setCopyToast(true);
+                                                setTimeout(() => setCopyToast(false), 2000);
+                                            });
+                                        }}
+                                        disabled={!viewedBackupCodes || viewedBackupCodes.length === 0}
+                                    >
+                                        <i className="fa-solid fa-copy"></i>
+                                        Copy All Codes
+                                    </button>
+                                    <button 
+                                        className="twofa-download-btn"
+                                        onClick={() => {
+                                            const codesText = viewedBackupCodes.join('\n');
+                                            const blob = new Blob(
+                                                [`SvaraGPT 2FA Backup Codes
+
+Generated: ${new Date().toLocaleString()}
+
+${codesText}
+
+Keep these codes safe. Each code can only be used once.`], 
+                                                { type: 'text/plain' }
+                                            );
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = `svaragpt-backup-codes-${Date.now()}.txt`;
+                                            a.click();
+                                            URL.revokeObjectURL(url);
+                                        }}
+                                        disabled={!viewedBackupCodes || viewedBackupCodes.length === 0}
+                                    >
+                                        <i className="fa-solid fa-download"></i>
+                                        Download Codes
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <button 
+                                className="twofa-done-btn"
+                                onClick={() => setShowBackupCodesModal(false)}
+                            >
+                                <i className="fa-solid fa-times"></i>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Regenerate Backup Codes Confirmation Modal */}
+            {showRegenerateConfirm && (
+                <div className="twofa-modal-backdrop" onClick={() => setShowRegenerateConfirm(false)}>
+                    <div className="twofa-modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="twofa-modal-header">
+                            <h2 className="twofa-modal-title">
+                                <i className="fa-solid fa-rotate"></i>
+                                Regenerate Backup Codes
+                            </h2>
+                            <button className="twofa-modal-close" onClick={() => setShowRegenerateConfirm(false)}>
+                                <i className="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="twofa-modal-body">
+                            <div className="twofa-warning">
+                                <i className="fa-solid fa-triangle-exclamation"></i>
+                                <p>This will invalidate all your existing backup codes. Any unused codes will no longer work. Are you sure you want to continue?</p>
+                            </div>
+                            
+                            <div className="twofa-modal-actions">
+                                <button 
+                                    className="twofa-cancel-btn"
+                                    onClick={() => setShowRegenerateConfirm(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    className="twofa-verify-btn"
+                                    onClick={handleRegenerateBackupCodes}
+                                >
+                                    <i className="fa-solid fa-rotate"></i>
+                                    Yes, Regenerate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Active Sessions Modal */}
             {showActiveSessionsModal && (
                 <div className="sessions-modal-backdrop" onClick={() => setShowActiveSessionsModal(false)}>
@@ -1797,6 +2089,14 @@ function ChatWindow() {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+            
+            {/* Copy Toast Notification */}
+            {copyToast && (
+                <div className="copy-toast">
+                    <i className="fa-solid fa-check-circle"></i>
+                    Copied to clipboard!
                 </div>
             )}
         </div>
