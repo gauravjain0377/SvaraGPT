@@ -9,6 +9,7 @@ import crypto from "crypto";
 
 import User from "../models/User.js";
 import { sendVerificationEmail } from "../utils/mailer.js";
+import { sendContactEmail } from "../utils/mailer.js";
 import { generateVerificationCode } from "../utils/verification.js";
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils/tokens.js";
 import { authGuard } from "../middleware/authGuard.js";
@@ -745,5 +746,51 @@ async function issueTokens(user, req) {
 
     return { accessToken, refreshToken };
 }
+
+// Sessions management (for Active Sessions UI)
+router.get("/sessions", authGuard, async (req, res) => {
+    try {
+        // Each refresh token represents a session
+        const user = await User.findById(req.user.id).lean();
+        const sessions = (user?.refreshTokens || []).map((t) => ({
+            id: crypto.createHash('sha256').update(t.token).digest('hex').slice(0, 24),
+            browser: t.userAgent || 'Unknown',
+            lastActive: t.createdAt || null,
+            current: false
+        }));
+        res.json({ sessions });
+    } catch (e) {
+        console.error('Error listing sessions', e);
+        res.status(500).json({ error: 'Failed to load sessions' });
+    }
+});
+
+router.delete("/sessions/:id", authGuard, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        const before = user.refreshTokens.length;
+        user.refreshTokens = user.refreshTokens.filter((rt) => crypto.createHash('sha256').update(rt.token).digest('hex').slice(0, 24) !== id);
+        await user.save();
+        return res.json({ success: before !== user.refreshTokens.length });
+    } catch (e) {
+        console.error('Error deleting session', e);
+        res.status(500).json({ error: 'Failed to delete session' });
+    }
+});
+
+router.delete("/sessions/all", authGuard, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        user.refreshTokens = [];
+        await user.save();
+        res.json({ success: true });
+    } catch (e) {
+        console.error('Error deleting all sessions', e);
+        res.status(500).json({ error: 'Failed to delete all sessions' });
+    }
+});
 
 export default router;

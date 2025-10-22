@@ -28,7 +28,7 @@ const Login = () => {
                 setRequiresTwoFactor(true);
                 setTempToken(result.tempToken);
             } else {
-                navigate("/home");
+                navigate("/chats");
             }
         } catch (err) {
             setError(err.message);
@@ -52,7 +52,7 @@ const Login = () => {
                     <TwoFactorVerify 
                         tempToken={tempToken} 
                         onCancel={handleCancelTwoFactor}
-                        onSuccess={() => navigate("/home")}
+                        onSuccess={() => navigate("/chats")}
                     />
                 ) : (
                     <>

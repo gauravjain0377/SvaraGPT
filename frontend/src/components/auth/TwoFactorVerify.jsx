@@ -26,7 +26,7 @@ const TwoFactorVerify = ({ tempToken, onCancel }) => {
             const data = await response.json();
 
             if (response.ok) {
-                navigate("/home");
+                navigate("/chats");
             } else {
                 setError(data.error || "Verification failed");
             }

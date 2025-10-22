@@ -41,6 +41,15 @@ function ChatWindow() {
     const [backupCodes, setBackupCodes] = useState([]);
     const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
     const [activeSessions, setActiveSessions] = useState([]);
+    const [showDisable2FAModal, setShowDisable2FAModal] = useState(false);
+    const [disable2FACode, setDisable2FACode] = useState('');
+    const [disable2FAError, setDisable2FAError] = useState('');
+    const [isDisabling2FA, setIsDisabling2FA] = useState(false);
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     // Close dropdown when user state changes
     useEffect(() => {
@@ -373,15 +382,28 @@ function ChatWindow() {
     }
 
     const handleExportChatData = useCallback((format) => {
+        const userSafeProjects = (projects || []).map(p => ({
+            name: p.name,
+            chats: (p.chats || []).map(c => ({ title: c.title }))
+        }));
+
+        const projectIdToName = new Map((projects || []).map(p => [p.id, p.name]));
+        const userSafeThreads = (allThreads || []).map(t => ({
+            title: t.title,
+            project: t.projectId ? (projectIdToName.get(t.projectId) || 'Project') : 'None'
+        }));
+
+        const userSafeCurrentChat = (prevChats || []).map(m => ({ role: m.role, content: m.content }));
+
         const exportData = {
-            exportDate: new Date().toISOString(),
+            exportedAt: new Date().toISOString(),
             user: {
-                name: user?.name,
-                email: user?.email
+                name: user?.name || null,
+                email: user?.email || null
             },
-            projects: projects,
-            threads: allThreads,
-            currentChat: prevChats
+            projects: userSafeProjects,
+            chats: userSafeThreads,
+            currentConversation: userSafeCurrentChat
         };
 
         const dateStr = new Date().toISOString().split('T')[0];
@@ -393,7 +415,7 @@ function ChatWindow() {
             fileName = `svaragpt-export-${dateStr}.json`;
         } else if (format === 'csv') {
             // Convert to CSV format
-            let csvContent = "Export Date," + exportData.exportDate + "\n";
+            let csvContent = "Exported At," + exportData.exportedAt + "\n";
             csvContent += "User Name," + (exportData.user.name || 'N/A') + "\n";
             csvContent += "User Email," + (exportData.user.email || 'N/A') + "\n\n";
             
@@ -403,15 +425,15 @@ function ChatWindow() {
                 csvContent += `"${project.name}",${project.chats.length}\n`;
             });
             
-            csvContent += "\nThreads\n";
-            csvContent += "Thread ID,Title,Project ID\n";
-            exportData.threads.forEach(thread => {
-                csvContent += `"${thread.threadId}","${thread.title}","${thread.projectId || 'None'}"\n`;
+            csvContent += "\nChats\n";
+            csvContent += "Title,Project\n";
+            exportData.chats.forEach(thread => {
+                csvContent += `"${thread.title}","${thread.project}"\n`;
             });
             
-            csvContent += "\nCurrent Chat\n";
+            csvContent += "\nCurrent Conversation\n";
             csvContent += "Role,Content\n";
-            exportData.currentChat.forEach(chat => {
+            exportData.currentConversation.forEach(chat => {
                 const content = chat.content.replace(/"/g, '""').replace(/\n/g, ' ');
                 csvContent += `"${chat.role}","${content}"\n`;
             });
@@ -421,7 +443,7 @@ function ChatWindow() {
         } else if (format === 'txt') {
             // Convert to plain text format
             let txtContent = `SvaraGPT Data Export\n`;
-            txtContent += `Export Date: ${exportData.exportDate}\n`;
+            txtContent += `Exported At: ${exportData.exportedAt}\n`;
             txtContent += `User: ${exportData.user.name || 'N/A'} (${exportData.user.email || 'N/A'})\n\n`;
             
             txtContent += `=== PROJECTS (${exportData.projects.length}) ===\n`;
@@ -429,15 +451,14 @@ function ChatWindow() {
                 txtContent += `${idx + 1}. ${project.name} - ${project.chats.length} chats\n`;
             });
             
-            txtContent += `\n=== THREADS (${exportData.threads.length}) ===\n`;
-            exportData.threads.forEach((thread, idx) => {
+            txtContent += `\n=== CHATS (${exportData.chats.length}) ===\n`;
+            exportData.chats.forEach((thread, idx) => {
                 txtContent += `${idx + 1}. ${thread.title}\n`;
-                txtContent += `   Thread ID: ${thread.threadId}\n`;
-                txtContent += `   Project: ${thread.projectId || 'None'}\n\n`;
+                txtContent += `   Project: ${thread.project}\n\n`;
             });
             
-            txtContent += `\n=== CURRENT CHAT (${exportData.currentChat.length} messages) ===\n`;
-            exportData.currentChat.forEach((chat, idx) => {
+            txtContent += `\n=== CURRENT CONVERSATION (${exportData.currentConversation.length} messages) ===\n`;
+            exportData.currentConversation.forEach((chat, idx) => {
                 txtContent += `\n[${chat.role.toUpperCase()}]:\n${chat.content}\n`;
             });
             
@@ -471,12 +492,16 @@ function ChatWindow() {
         setContactFormStatus({ type: '', message: '' });
 
         try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 15000);
             const response = await fetch(apiUrl('/api/contact'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(contactForm)
+                body: JSON.stringify(contactForm),
+                signal: controller.signal
             });
+            clearTimeout(timeout);
 
             const data = await response.json();
 
@@ -574,7 +599,7 @@ function ChatWindow() {
     // Active Sessions Functions
     const fetchActiveSessions = async () => {
         try {
-            const response = await fetch(apiUrl('/api/auth/sessions'), {
+            const response = await fetch(apiUrl('/auth/sessions'), {
                 credentials: 'include',
             });
             const data = await response.json();
@@ -590,7 +615,7 @@ function ChatWindow() {
 
     const handleLogoutSession = async (sessionId) => {
         try {
-            const response = await fetch(apiUrl(`/api/auth/sessions/${sessionId}`), {
+            const response = await fetch(apiUrl(`/auth/sessions/${sessionId}`), {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -607,7 +632,7 @@ function ChatWindow() {
         if (!confirm('This will log you out from all devices. Continue?')) return;
         
         try {
-            const response = await fetch(apiUrl('/api/auth/sessions/all'), {
+            const response = await fetch(apiUrl('/auth/sessions/all'), {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -808,7 +833,7 @@ function ChatWindow() {
                         </h2>
                         <button 
                             className="settings-page-close" 
-                            onClick={() => { setShowSettingsModal(false); navigate('/home'); }}
+                            onClick={() => { setShowSettingsModal(false); navigate('/chats'); }}
                             aria-label="Close Settings"
                         >
                             <i className="fa-solid fa-times"></i>

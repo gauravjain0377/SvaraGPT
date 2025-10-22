@@ -22,6 +22,8 @@ const UserSchema = new mongoose.Schema(
         twoFactorSecret: { type: String },
         twoFactorEnabled: { type: Boolean, default: false },
         twoFactorBackupCodes: [{ type: String }],
+        passwordResetCode: { type: String },
+        passwordResetExpires: { type: Date },
     },
     { timestamps: true }
 );

@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/home" element={<App />} />
+          <Route path="/home" element={<Navigate to="/chats" replace />} />
           <Route path="/chats" element={<App />} />
           <Route path="/chats/:chatId" element={<App />} />
           <Route path="/projects" element={<App />} />
@@ -25,8 +25,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/settings/contact" element={<App />} />
           <Route path="/settings/security" element={<App />} />
           <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="*" element={<Navigate to="/home" replace />} />
+          <Route path="/" element={<Navigate to="/chats" replace />} />
+          <Route path="*" element={<Navigate to="/chats" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
