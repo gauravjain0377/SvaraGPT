@@ -6,9 +6,11 @@ import { body, validationResult } from "express-validator";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
 import crypto from "crypto";
+import { UAParser } from "ua-parser-js";
+import geoip from "geoip-lite";
 
 import User from "../models/User.js";
-import { sendVerificationEmail } from "../utils/mailer.js";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../utils/mailer.js";
 import { sendContactEmail } from "../utils/mailer.js";
 import { generateVerificationCode } from "../utils/verification.js";
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils/tokens.js";
@@ -736,10 +738,49 @@ async function issueTokens(user, req) {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
+    // Get IP address
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || 
+               req.headers['x-real-ip'] || 
+               req.connection?.remoteAddress ||
+               req.socket?.remoteAddress || 
+               "unknown";
+    
+    // Parse User-Agent using ua-parser-js
+    const userAgent = req.headers["user-agent"] || "unknown";
+    const parser = new UAParser(userAgent);
+    const uaResult = parser.getResult();
+    
+    // Extract device information
+    const device = uaResult.device.type || "desktop"; // mobile, tablet, desktop
+    const browser = uaResult.browser.name || "Unknown Browser";
+    const browserVersion = uaResult.browser.version || "";
+    const os = uaResult.os.name || "Unknown OS";
+    const osVersion = uaResult.os.version || "";
+    
+    // Get location from IP using geoip-lite
+    let location = "Unknown";
+    let country = "Unknown";
+    let city = "Unknown";
+    
+    if (ip && ip !== "unknown" && !ip.includes('::1') && !ip.includes('127.0.0.1')) {
+        const geo = geoip.lookup(ip);
+        if (geo) {
+            country = geo.country || "Unknown";
+            city = geo.city || "Unknown";
+            location = city !== "Unknown" ? `${city}, ${country}` : country;
+        }
+    }
+
     user.refreshTokens.push({
         token: refreshToken,
-        userAgent: req.headers["user-agent"] || "unknown",
+        userAgent,
+        ip,
+        device,
+        browser: browserVersion ? `${browser} ${browserVersion}` : browser,
+        os: osVersion ? `${os} ${osVersion}` : os,
+        location,
         createdAt: new Date(),
+        lastActive: new Date(),
     });
 
     await user.save();
@@ -747,17 +788,235 @@ async function issueTokens(user, req) {
     return { accessToken, refreshToken };
 }
 
+// Change Password Endpoint - For authenticated users
+router.post("/change-password", 
+    authGuard,
+    [
+        body("currentPassword").notEmpty().withMessage("Current password is required"),
+        body("newPassword")
+            .isLength({ min: 8 })
+            .withMessage("New password must be at least 8 characters"),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { currentPassword, newPassword } = req.body;
+
+        try {
+            const user = await User.findById(req.user.id);
+            
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            // Check if user is using local authentication (not Google OAuth)
+            if (!user.passwordHash) {
+                return res.status(400).json({ 
+                    error: "Cannot change password for OAuth users" 
+                });
+            }
+
+            // Verify current password
+            const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+            if (!isMatch) {
+                return res.status(401).json({ error: "Current password is incorrect" });
+            }
+
+            // Check if new password is same as current
+            const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
+            if (isSamePassword) {
+                return res.status(400).json({ 
+                    error: "New password must be different from current password" 
+                });
+            }
+
+            // Hash and update new password
+            const newPasswordHash = await bcrypt.hash(newPassword, 12);
+            user.passwordHash = newPasswordHash;
+            await user.save();
+
+            res.status(200).json({ 
+                success: true,
+                message: "Password changed successfully" 
+            });
+        } catch (error) {
+            console.error("❌ [CHANGE PASSWORD] Error:", error);
+            res.status(500).json({ 
+                error: "Failed to change password",
+                details: error.message 
+            });
+        }
+    }
+);
+
+// Forgot Password Endpoint - Sends reset code via email
+router.post("/forgot-password",
+    [
+        body("email").isEmail().withMessage("Valid email is required"),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { email } = req.body;
+
+        try {
+            const user = await User.findOne({ email: email.toLowerCase() });
+            
+            // Don't reveal if email exists for security
+            if (!user) {
+                return res.status(200).json({ 
+                    message: "If an account exists, a password reset code has been sent" 
+                });
+            }
+
+            // Check if user is using local authentication
+            if (!user.passwordHash) {
+                return res.status(400).json({ 
+                    error: "This account uses Google sign-in. Please login with Google." 
+                });
+            }
+
+            // Generate reset code
+            const { code, expiresAt } = generateVerificationCode();
+            user.passwordResetCode = code;
+            user.passwordResetExpires = expiresAt;
+            await user.save();
+
+            // Send email
+            await sendPasswordResetEmail(user.email, user.name, code);
+
+            res.status(200).json({ 
+                success: true,
+                message: "If an account exists, a password reset code has been sent" 
+            });
+        } catch (error) {
+            console.error("❌ [FORGOT PASSWORD] Error:", error);
+            res.status(500).json({ 
+                error: "Failed to process password reset request",
+                details: error.message 
+            });
+        }
+    }
+);
+
+// Reset Password Endpoint - Verifies code and updates password
+router.post("/reset-password",
+    [
+        body("email").isEmail().withMessage("Valid email is required"),
+        body("code").isLength({ min: 6, max: 6 }).withMessage("6-digit code required"),
+        body("newPassword")
+            .isLength({ min: 8 })
+            .withMessage("Password must be at least 8 characters"),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { email, code, newPassword } = req.body;
+
+        try {
+            const user = await User.findOne({ email: email.toLowerCase() });
+            
+            if (!user) {
+                return res.status(404).json({ error: "Invalid or expired reset code" });
+            }
+
+            // Verify reset code
+            if (
+                !user.passwordResetCode ||
+                user.passwordResetCode !== code ||
+                !user.passwordResetExpires ||
+                user.passwordResetExpires.getTime() < Date.now()
+            ) {
+                return res.status(400).json({ error: "Invalid or expired reset code" });
+            }
+
+            // Hash new password
+            const newPasswordHash = await bcrypt.hash(newPassword, 12);
+            user.passwordHash = newPasswordHash;
+            user.passwordResetCode = null;
+            user.passwordResetExpires = null;
+            await user.save();
+
+            res.status(200).json({ 
+                success: true,
+                message: "Password reset successfully. You can now login with your new password." 
+            });
+        } catch (error) {
+            console.error("❌ [RESET PASSWORD] Error:", error);
+            res.status(500).json({ 
+                error: "Failed to reset password",
+                details: error.message 
+            });
+        }
+    }
+);
+
 // Sessions management (for Active Sessions UI)
 router.get("/sessions", authGuard, async (req, res) => {
     try {
-        // Each refresh token represents a session
+        const currentRefreshToken = req.cookies?.svara_refresh;
         const user = await User.findById(req.user.id).lean();
-        const sessions = (user?.refreshTokens || []).map((t) => ({
-            id: crypto.createHash('sha256').update(t.token).digest('hex').slice(0, 24),
-            browser: t.userAgent || 'Unknown',
-            lastActive: t.createdAt || null,
-            current: false
-        }));
+        
+        const sessions = (user?.refreshTokens || []).map((t) => {
+            const sessionId = crypto.createHash('sha256').update(t.token).digest('hex').slice(0, 24);
+            const isCurrent = currentRefreshToken === t.token;
+            
+            // Format last active time
+            const lastActiveDate = new Date(t.lastActive || t.createdAt);
+            const now = new Date();
+            const diffMs = now - lastActiveDate;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            let lastActiveStr;
+            if (diffMins < 1) lastActiveStr = 'Just now';
+            else if (diffMins < 60) lastActiveStr = `${diffMins} min ago`;
+            else if (diffMins < 1440) lastActiveStr = `${Math.floor(diffMins / 60)} hours ago`;
+            else lastActiveStr = `${Math.floor(diffMins / 1440)} days ago`;
+            
+            // Format login time
+            const loginDate = new Date(t.createdAt);
+            const loginTimeStr = loginDate.toLocaleDateString('en-US', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+            
+            // Get device type from user agent or stored device field
+            let deviceType = t.device || 'desktop';
+            if (deviceType === 'mobile') deviceType = 'mobile';
+            else if (deviceType === 'tablet') deviceType = 'tablet';
+            else deviceType = 'desktop';
+            
+            return {
+                id: sessionId,
+                device: t.os || 'Unknown OS',
+                browser: t.browser || 'Unknown Browser',
+                country: t.location || 'Unknown Location',
+                ip: t.ip || 'Unknown IP',
+                loginTime: loginTimeStr,
+                lastActive: lastActiveStr,
+                createdAt: t.createdAt,
+                deviceType: deviceType,
+                current: isCurrent
+            };
+        });
+        
+        // Sort by current first, then by last active
+        sessions.sort((a, b) => {
+            if (a.current && !b.current) return -1;
+            if (!a.current && b.current) return 1;
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+        
         res.json({ sessions });
     } catch (e) {
         console.error('Error listing sessions', e);
@@ -769,11 +1028,24 @@ router.delete("/sessions/:id", authGuard, async (req, res) => {
     try {
         const { id } = req.params;
         const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
         const before = user.refreshTokens.length;
-        user.refreshTokens = user.refreshTokens.filter((rt) => crypto.createHash('sha256').update(rt.token).digest('hex').slice(0, 24) !== id);
+        user.refreshTokens = user.refreshTokens.filter((rt) => {
+            const sessionId = crypto.createHash('sha256').update(rt.token).digest('hex').slice(0, 24);
+            return sessionId !== id;
+        });
+        
         await user.save();
-        return res.json({ success: before !== user.refreshTokens.length });
+        
+        const deleted = before !== user.refreshTokens.length;
+        return res.json({ 
+            success: deleted,
+            message: deleted ? 'Session logged out successfully' : 'Session not found'
+        });
     } catch (e) {
         console.error('Error deleting session', e);
         res.status(500).json({ error: 'Failed to delete session' });
@@ -782,11 +1054,29 @@ router.delete("/sessions/:id", authGuard, async (req, res) => {
 
 router.delete("/sessions/all", authGuard, async (req, res) => {
     try {
+        const currentRefreshToken = req.cookies?.svara_refresh;
         const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        user.refreshTokens = [];
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Keep only the current session
+        if (currentRefreshToken) {
+            user.refreshTokens = user.refreshTokens.filter(
+                (rt) => rt.token === currentRefreshToken
+            );
+        } else {
+            // If no current token, remove all
+            user.refreshTokens = [];
+        }
+        
         await user.save();
-        res.json({ success: true });
+        
+        res.json({ 
+            success: true,
+            message: 'All other sessions logged out successfully'
+        });
     } catch (e) {
         console.error('Error deleting all sessions', e);
         res.status(500).json({ error: 'Failed to delete all sessions' });

@@ -4,7 +4,13 @@ const RefreshTokenSchema = new mongoose.Schema(
     {
         token: { type: String, required: true },
         userAgent: { type: String, default: "unknown" },
+        ip: { type: String, default: "unknown" },
+        device: { type: String, default: "unknown" },
+        browser: { type: String, default: "unknown" },
+        os: { type: String, default: "unknown" },
+        location: { type: String, default: "unknown" },
         createdAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 14 },
+        lastActive: { type: Date, default: Date.now },
     },
     { _id: false }
 );

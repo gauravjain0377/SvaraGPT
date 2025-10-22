@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { apiUrl } from "../../utils/apiConfig";
 import "./Auth.css";
 import logo3 from "../../assets/logo3.png";
 import TwoFactorVerify from "./TwoFactorVerify";
@@ -13,6 +14,17 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
     const [tempToken, setTempToken] = useState("");
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [forgotPasswordStep, setForgotPasswordStep] = useState('email'); // 'email', 'code', 'success'
+    const [resetEmail, setResetEmail] = useState("");
+    const [resetCode, setResetCode] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmNewPassword, setConfirmNewPassword] = useState("");
+    const [resetError, setResetError] = useState("");
+    const [resetSuccess, setResetSuccess] = useState("");
+    const [isResetting, setIsResetting] = useState(false);
+    const [showResetNewPassword, setShowResetNewPassword] = useState(false);
+    const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
     const { login, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
 
@@ -40,6 +52,85 @@ const Login = () => {
     const handleCancelTwoFactor = () => {
         setRequiresTwoFactor(false);
         setTempToken("");
+    };
+
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setResetError("");
+        setIsResetting(true);
+
+        try {
+            const response = await fetch(apiUrl('/auth/forgot-password'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: resetEmail })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setForgotPasswordStep('code');
+                setResetSuccess('Password reset code sent to your email');
+            } else {
+                setResetError(data.error || 'Failed to send reset code');
+            }
+        } catch (err) {
+            setResetError('Failed to send reset code. Please try again.');
+        } finally {
+            setIsResetting(false);
+        }
+    };
+
+    const handleResetPassword = async (e) => {
+        e.preventDefault();
+        setResetError("");
+
+        if (newPassword.length < 8) {
+            setResetError('Password must be at least 8 characters');
+            return;
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            setResetError('Passwords do not match');
+            return;
+        }
+
+        setIsResetting(true);
+
+        try {
+            const response = await fetch(apiUrl('/auth/reset-password'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: resetEmail,
+                    code: resetCode,
+                    newPassword 
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setForgotPasswordStep('success');
+                setResetSuccess('Password reset successfully!');
+                setTimeout(() => {
+                    setShowForgotPassword(false);
+                    setForgotPasswordStep('email');
+                    setResetEmail('');
+                    setResetCode('');
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                    setResetError('');
+                    setResetSuccess('');
+                }, 2000);
+            } else {
+                setResetError(data.error || 'Failed to reset password');
+            }
+        } catch (err) {
+            setResetError('Failed to reset password. Please try again.');
+        } finally {
+            setIsResetting(false);
+        }
     };
 
     return (
@@ -137,6 +228,19 @@ const Login = () => {
                                 </div>
                             </div>
 
+                            <div className="forgot-password-link">
+                                <button 
+                                    type="button" 
+                                    className="link-button"
+                                    onClick={() => {
+                                        setShowForgotPassword(true);
+                                        setResetEmail(email);
+                                    }}
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+
                             <button type="submit" className="auth-button" disabled={loading}>
                                 {loading ? "Signing in..." : "Sign In"}
                             </button>
@@ -147,9 +251,186 @@ const Login = () => {
                                 Don't have an account? <Link to="/register">Sign up</Link>
                             </p>
                         </div>
-                    </>
+                    </>  
                 )}
             </div>
+
+            {/* Forgot Password Modal */}
+            {showForgotPassword && (
+                <div className="auth-modal-backdrop" onClick={() => setShowForgotPassword(false)}>
+                    <div className="auth-modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="auth-modal-header">
+                            <h2>
+                                <i className="fa-solid fa-key"></i>
+                                Reset Password
+                            </h2>
+                            <button className="auth-modal-close" onClick={() => setShowForgotPassword(false)}>
+                                <i className="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+
+                        <div className="auth-modal-body">
+                            {forgotPasswordStep === 'email' && (
+                                <form onSubmit={handleForgotPassword}>
+                                    <p className="auth-modal-description">
+                                        Enter your email address and we'll send you a verification code to reset your password.
+                                    </p>
+
+                                    {resetError && (
+                                        <div className="auth-error">
+                                            <i className="fa-solid fa-circle-exclamation"></i>
+                                            {resetError}
+                                        </div>
+                                    )}
+
+                                    {resetSuccess && (
+                                        <div className="auth-success">
+                                            <i className="fa-solid fa-circle-check"></i>
+                                            {resetSuccess}
+                                        </div>
+                                    )}
+
+                                    <div className="form-group">
+                                        <label htmlFor="resetEmail">Email Address</label>
+                                        <input
+                                            type="email"
+                                            id="resetEmail"
+                                            value={resetEmail}
+                                            onChange={(e) => setResetEmail(e.target.value)}
+                                            placeholder="Enter your email"
+                                            required
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    <div className="auth-modal-actions">
+                                        <button 
+                                            type="button"
+                                            className="auth-button-secondary"
+                                            onClick={() => setShowForgotPassword(false)}
+                                            disabled={isResetting}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit"
+                                            className="auth-button"
+                                            disabled={isResetting}
+                                        >
+                                            {isResetting ? 'Sending...' : 'Send Code'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {forgotPasswordStep === 'code' && (
+                                <form onSubmit={handleResetPassword}>
+                                    <p className="auth-modal-description">
+                                        Enter the 6-digit code sent to {resetEmail} and choose a new password.
+                                    </p>
+
+                                    {resetError && (
+                                        <div className="auth-error">
+                                            <i className="fa-solid fa-circle-exclamation"></i>
+                                            {resetError}
+                                        </div>
+                                    )}
+
+                                    <div className="form-group">
+                                        <label htmlFor="resetCode">Verification Code</label>
+                                        <input
+                                            type="text"
+                                            id="resetCode"
+                                            value={resetCode}
+                                            onChange={(e) => setResetCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                                            placeholder="Enter 6-digit code"
+                                            maxLength={6}
+                                            required
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label htmlFor="newPasswordReset">New Password</label>
+                                        <div className="input-group">
+                                            <input
+                                                type={showResetNewPassword ? "text" : "password"}
+                                                id="newPasswordReset"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                placeholder="Enter new password (min 8 characters)"
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                className="toggle-password"
+                                                onClick={() => setShowResetNewPassword(!showResetNewPassword)}
+                                            >
+                                                <i className={`fa-solid fa-eye${showResetNewPassword ? '-slash' : ''}`}></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label htmlFor="confirmNewPasswordReset">Confirm New Password</label>
+                                        <div className="input-group">
+                                            <input
+                                                type={showResetConfirmPassword ? "text" : "password"}
+                                                id="confirmNewPasswordReset"
+                                                value={confirmNewPassword}
+                                                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                                placeholder="Confirm your new password"
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                className="toggle-password"
+                                                onClick={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
+                                            >
+                                                <i className={`fa-solid fa-eye${showResetConfirmPassword ? '-slash' : ''}`}></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="auth-modal-actions">
+                                        <button 
+                                            type="button"
+                                            className="auth-button-secondary"
+                                            onClick={() => {
+                                                setForgotPasswordStep('email');
+                                                setResetCode('');
+                                                setNewPassword('');
+                                                setConfirmNewPassword('');
+                                                setResetError('');
+                                            }}
+                                            disabled={isResetting}
+                                        >
+                                            Back
+                                        </button>
+                                        <button 
+                                            type="submit"
+                                            className="auth-button"
+                                            disabled={isResetting}
+                                        >
+                                            {isResetting ? 'Resetting...' : 'Reset Password'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {forgotPasswordStep === 'success' && (
+                                <div className="auth-modal-success">
+                                    <div className="success-icon">
+                                        <i className="fa-solid fa-circle-check"></i>
+                                    </div>
+                                    <h3>Password Reset Successfully!</h3>
+                                    <p>You can now login with your new password.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

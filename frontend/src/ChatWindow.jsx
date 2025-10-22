@@ -50,6 +50,9 @@ function ChatWindow() {
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Close dropdown when user state changes
     useEffect(() => {
@@ -578,21 +581,103 @@ function ChatWindow() {
         }
     };
 
-    const handleDisable2FA = async () => {
-        if (!confirm('Are you sure you want to disable Two-Factor Authentication?')) return;
+    const handleDisable2FA = () => {
+        setShowDisable2FAModal(true);
+        setDisable2FACode('');
+        setDisable2FAError('');
+    };
+
+    const confirmDisable2FA = async () => {
+        if (!disable2FACode || disable2FACode.length !== 6) {
+            setDisable2FAError('Please enter a valid 6-digit code');
+            return;
+        }
+
+        setIsDisabling2FA(true);
+        setDisable2FAError('');
         
         try {
             const response = await fetch(apiUrl('/auth/2fa/disable'), {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
+                body: JSON.stringify({ token: disable2FACode })
             });
+            
+            const data = await response.json();
             
             if (response.ok) {
                 setTwoFactorEnabled(false);
-                alert('Two-Factor Authentication has been disabled.');
+                setShowDisable2FAModal(false);
+                setDisable2FACode('');
+                alert('Two-Factor Authentication has been disabled successfully.');
+            } else {
+                setDisable2FAError(data.message || 'Invalid verification code');
             }
         } catch (error) {
             console.error('Error disabling 2FA:', error);
+            setDisable2FAError('Failed to disable 2FA. Please try again.');
+        } finally {
+            setIsDisabling2FA(false);
+        }
+    };
+
+    // Change Password Functions
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        setPasswordError('');
+        setPasswordSuccess('');
+
+        const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+        // Validation
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            setPasswordError('All fields are required');
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            setPasswordError('New password must be at least 8 characters');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordError('New passwords do not match');
+            return;
+        }
+
+        if (newPassword === currentPassword) {
+            setPasswordError('New password must be different from current password');
+            return;
+        }
+
+        setIsChangingPassword(true);
+
+        try {
+            const response = await fetch(apiUrl('/auth/change-password'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setPasswordSuccess('Password changed successfully!');
+                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                setTimeout(() => {
+                    setShowChangePasswordModal(false);
+                    setPasswordSuccess('');
+                }, 2000);
+            } else {
+                setPasswordError(data.error || 'Failed to change password');
+            }
+        } catch (error) {
+            console.error('Error changing password:', error);
+            setPasswordError('Failed to change password. Please try again.');
+        } finally {
+            setIsChangingPassword(false);
         }
     };
 
@@ -614,22 +699,30 @@ function ChatWindow() {
     };
 
     const handleLogoutSession = async (sessionId) => {
+        if (!confirm('Are you sure you want to log out this session?')) return;
+        
         try {
             const response = await fetch(apiUrl(`/auth/sessions/${sessionId}`), {
                 method: 'DELETE',
                 credentials: 'include',
             });
             
-            if (response.ok) {
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
                 setActiveSessions(prev => prev.filter(s => s.id !== sessionId));
+                alert('Session logged out successfully');
+            } else {
+                alert(data.message || 'Failed to logout session');
             }
         } catch (error) {
             console.error('Error logging out session:', error);
+            alert('Failed to logout session. Please try again.');
         }
     };
 
     const handleLogoutAllSessions = async () => {
-        if (!confirm('This will log you out from all devices. Continue?')) return;
+        if (!confirm('This will log you out from all other devices except this one. Continue?')) return;
         
         try {
             const response = await fetch(apiUrl('/auth/sessions/all'), {
@@ -637,12 +730,18 @@ function ChatWindow() {
                 credentials: 'include',
             });
             
-            if (response.ok) {
-                logout();
-                navigate('/login');
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Refresh the sessions list
+                await fetchActiveSessions();
+                alert('All other sessions logged out successfully');
+            } else {
+                alert(data.message || 'Failed to logout all sessions');
             }
         } catch (error) {
             console.error('Error logging out all sessions:', error);
+            alert('Failed to logout all sessions. Please try again.');
         }
     };
 
@@ -1122,7 +1221,7 @@ function ChatWindow() {
                                                         <i className="fa-solid fa-key"></i>
                                                         Password
                                                     </div>
-                                                    <button className="settings-action-btn">
+                                                    <button className="settings-action-btn" onClick={() => setShowChangePasswordModal(true)}>
                                                         <i className="fa-solid fa-pen"></i> Change
                                                     </button>
                                                 </div>
@@ -1345,6 +1444,212 @@ function ChatWindow() {
                 </div>
             )}
 
+            {/* Disable 2FA Modal */}
+            {showDisable2FAModal && (
+                <div className="twofa-modal-backdrop" onClick={() => setShowDisable2FAModal(false)}>
+                    <div className="twofa-modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="twofa-modal-header">
+                            <h2 className="twofa-modal-title">
+                                <i className="fa-solid fa-shield-xmark"></i>
+                                Disable Two-Factor Authentication
+                            </h2>
+                            <button className="twofa-modal-close" onClick={() => setShowDisable2FAModal(false)}>
+                                <i className="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="twofa-modal-body">
+                            <div className="twofa-warning">
+                                <i className="fa-solid fa-triangle-exclamation"></i>
+                                <p>Disabling 2FA will make your account less secure. You will only need your password to log in.</p>
+                            </div>
+                            
+                            <div className="twofa-step">
+                                <h3>Enter Verification Code</h3>
+                                <p>Enter the 6-digit code from your authenticator app or use a backup code to confirm.</p>
+                                
+                                {disable2FAError && (
+                                    <div className="twofa-error">
+                                        <i className="fa-solid fa-circle-exclamation"></i>
+                                        {disable2FAError}
+                                    </div>
+                                )}
+                                
+                                <div className="twofa-code-inputs">
+                                    <input
+                                        type="text"
+                                        className="twofa-code-input"
+                                        value={disable2FACode}
+                                        onChange={(e) => setDisable2FACode(e.target.value.replace(/[^0-9A-Za-z]/g, '').slice(0, 8))}
+                                        placeholder="Enter code"
+                                        maxLength={8}
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="twofa-modal-actions">
+                                <button 
+                                    className="twofa-cancel-btn"
+                                    onClick={() => setShowDisable2FAModal(false)}
+                                    disabled={isDisabling2FA}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    className="twofa-disable-btn"
+                                    onClick={confirmDisable2FA}
+                                    disabled={!disable2FACode || isDisabling2FA}
+                                >
+                                    {isDisabling2FA ? (
+                                        <>
+                                            <i className="fa-solid fa-spinner fa-spin"></i>
+                                            Disabling...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fa-solid fa-toggle-off"></i>
+                                            Disable 2FA
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Password Modal */}
+            {showChangePasswordModal && (
+                <div className="twofa-modal-backdrop" onClick={() => setShowChangePasswordModal(false)}>
+                    <div className="twofa-modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="twofa-modal-header">
+                            <h2 className="twofa-modal-title">
+                                <i className="fa-solid fa-key"></i>
+                                Change Password
+                            </h2>
+                            <button className="twofa-modal-close" onClick={() => setShowChangePasswordModal(false)}>
+                                <i className="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="twofa-modal-body">
+                            <form onSubmit={handleChangePassword}>
+                                {passwordError && (
+                                    <div className="twofa-error">
+                                        <i className="fa-solid fa-circle-exclamation"></i>
+                                        {passwordError}
+                                    </div>
+                                )}
+                                
+                                {passwordSuccess && (
+                                    <div className="twofa-success-message">
+                                        <i className="fa-solid fa-circle-check"></i>
+                                        {passwordSuccess}
+                                    </div>
+                                )}
+                                
+                                <div className="password-form-group">
+                                    <label htmlFor="currentPassword">Current Password</label>
+                                    <div className="password-input-wrapper">
+                                        <input
+                                            type={showCurrentPassword ? "text" : "password"}
+                                            id="currentPassword"
+                                            value={passwordForm.currentPassword}
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                                            placeholder="Enter your current password"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="password-toggle-btn"
+                                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                        >
+                                            <i className={`fa-solid fa-eye${showCurrentPassword ? '-slash' : ''}`}></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="password-form-group">
+                                    <label htmlFor="newPassword">New Password</label>
+                                    <div className="password-input-wrapper">
+                                        <input
+                                            type={showNewPassword ? "text" : "password"}
+                                            id="newPassword"
+                                            value={passwordForm.newPassword}
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                            placeholder="Enter new password (min 8 characters)"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="password-toggle-btn"
+                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                        >
+                                            <i className={`fa-solid fa-eye${showNewPassword ? '-slash' : ''}`}></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="password-form-group">
+                                    <label htmlFor="confirmPassword">Confirm New Password</label>
+                                    <div className="password-input-wrapper">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            id="confirmPassword"
+                                            value={passwordForm.confirmPassword}
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                            placeholder="Confirm your new password"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="password-toggle-btn"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        >
+                                            <i className={`fa-solid fa-eye${showConfirmPassword ? '-slash' : ''}`}></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="twofa-modal-actions">
+                                    <button 
+                                        type="button"
+                                        className="twofa-cancel-btn"
+                                        onClick={() => {
+                                            setShowChangePasswordModal(false);
+                                            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                                            setPasswordError('');
+                                            setPasswordSuccess('');
+                                        }}
+                                        disabled={isChangingPassword}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit"
+                                        className="twofa-verify-btn"
+                                        disabled={isChangingPassword}
+                                    >
+                                        {isChangingPassword ? (
+                                            <>
+                                                <i className="fa-solid fa-spinner fa-spin"></i>
+                                                Changing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fa-solid fa-check"></i>
+                                                Change Password
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Active Sessions Modal */}
             {showActiveSessionsModal && (
                 <div className="sessions-modal-backdrop" onClick={() => setShowActiveSessionsModal(false)}>
@@ -1364,43 +1669,68 @@ function ChatWindow() {
                                 These are the devices currently logged into your account. If you see any unfamiliar devices, log them out immediately.
                             </p>
                             
-                            <div className="sessions-list">
+                            <div className="sessions-table-container">
                                 {activeSessions.length === 0 ? (
                                     <div className="sessions-empty">
                                         <i className="fa-solid fa-circle-info"></i>
                                         <p>No active sessions found</p>
                                     </div>
                                 ) : (
-                                    activeSessions.map((session) => (
-                                        <div key={session.id} className="session-item">
-                                            <div className="session-icon">
-                                                <i className={`fa-solid fa-${session.device === 'mobile' ? 'mobile-screen' : 'desktop'}`}></i>
-                                            </div>
-                                            <div className="session-info">
-                                                <h4>{session.browser || 'Unknown Browser'}</h4>
-                                                <p className="session-location">
-                                                    <i className="fa-solid fa-location-dot"></i>
-                                                    {session.location || 'Unknown Location'}
-                                                </p>
-                                                <p className="session-time">
-                                                    <i className="fa-solid fa-clock"></i>
-                                                    Last active: {session.lastActive || 'Just now'}
-                                                </p>
-                                                {session.current && (
-                                                    <span className="session-badge current">Current Session</span>
-                                                )}
-                                            </div>
-                                            {!session.current && (
-                                                <button 
-                                                    className="session-logout-btn"
-                                                    onClick={() => handleLogoutSession(session.id)}
-                                                >
-                                                    <i className="fa-solid fa-right-from-bracket"></i>
-                                                    Log Out
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))
+                                    <table className="sessions-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Device</th>
+                                                <th>Browser</th>
+                                                <th>Country</th>
+                                                <th>IP Address</th>
+                                                <th>Login Time</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {activeSessions.map((session) => (
+                                                <tr key={session.id} className={session.current ? 'current-session' : ''}>
+                                                    <td>
+                                                        <div className="session-device">
+                                                            <i className={`fa-solid fa-${
+                                                                session.deviceType === 'mobile' ? 'mobile-screen' : 
+                                                                session.deviceType === 'tablet' ? 'tablet-screen-button' : 
+                                                                'desktop'
+                                                            }`}></i>
+                                                            <span>{session.device}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>{session.browser}</td>
+                                                    <td>
+                                                        <div className="session-country">
+                                                            <i className="fa-solid fa-location-dot"></i>
+                                                            {session.country}
+                                                        </div>
+                                                    </td>
+                                                    <td><code className="session-ip">{session.ip}</code></td>
+                                                    <td>
+                                                        <div className="session-login-time">
+                                                            <div>{session.loginTime}</div>
+                                                            <small>Last active: {session.lastActive}</small>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        {session.current ? (
+                                                            <span className="session-badge current">Current</span>
+                                                        ) : (
+                                                            <button 
+                                                                className="session-logout-btn"
+                                                                onClick={() => handleLogoutSession(session.id)}
+                                                            >
+                                                                <i className="fa-solid fa-right-from-bracket"></i>
+                                                                Logout
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 )}
                             </div>
                             
