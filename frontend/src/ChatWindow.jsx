@@ -4,6 +4,7 @@ import { MyContext } from "./MyContext.jsx";
 import { useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {ScaleLoader} from "react-spinners";
 import logo3 from "./assets/logo3.png";
 import { apiUrl } from "./utils/apiConfig";
@@ -20,6 +21,7 @@ function ChatWindow() {
     } = useContext(MyContext);
     const { user, logout, loading: authLoading, isInitialized } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
@@ -640,6 +642,25 @@ function ChatWindow() {
         }
     }, [user]);
 
+    // Open/close settings modal based on route and sync active tab
+    useEffect(() => {
+        const path = location.pathname || '';
+        if (path.startsWith('/settings')) {
+            setShowSettingsModal(true);
+            if (path.includes('/settings/faq')) {
+                setActiveSettingsTab('faqs');
+            } else if (path.includes('/settings/contact')) {
+                setActiveSettingsTab('help');
+            } else if (path.includes('/settings/security')) {
+                setActiveSettingsTab('security');
+            } else {
+                setActiveSettingsTab('general');
+            }
+        } else {
+            setShowSettingsModal(false);
+        }
+    }, [location.pathname]);
+
     return (
         <div className="chatWindow">
             {/* Header */}
@@ -787,7 +808,7 @@ function ChatWindow() {
                         </h2>
                         <button 
                             className="settings-page-close" 
-                            onClick={() => setShowSettingsModal(false)}
+                            onClick={() => { setShowSettingsModal(false); navigate('/home'); }}
                             aria-label="Close Settings"
                         >
                             <i className="fa-solid fa-times"></i>
@@ -798,28 +819,28 @@ function ChatWindow() {
                             <div className="settings-sidebar">
                                 <div 
                                     className={`settings-tab ${activeSettingsTab === 'general' ? 'active' : ''}`}
-                                    onClick={() => setActiveSettingsTab('general')}
+                                    onClick={() => navigate('/settings/general')}
                                 >
                                     <i className="fa-solid fa-sliders"></i>
                                     <span>General</span>
                                 </div>
                                 <div 
                                     className={`settings-tab ${activeSettingsTab === 'faqs' ? 'active' : ''}`}
-                                    onClick={() => setActiveSettingsTab('faqs')}
+                                    onClick={() => navigate('/settings/faq')}
                                 >
                                     <i className="fa-solid fa-circle-question"></i>
                                     <span>FAQs</span>
                                 </div>
                                 <div 
                                     className={`settings-tab ${activeSettingsTab === 'help' ? 'active' : ''}`}
-                                    onClick={() => setActiveSettingsTab('help')}
+                                    onClick={() => navigate('/settings/contact')}
                                 >
                                     <i className="fa-solid fa-life-ring"></i>
                                     <span>Contact Us</span>
                                 </div>
                                 <div 
                                     className={`settings-tab ${activeSettingsTab === 'security' ? 'active' : ''}`}
-                                    onClick={() => setActiveSettingsTab('security')}
+                                    onClick={() => navigate('/settings/security')}
                                 >
                                     <i className="fa-solid fa-shield-halved"></i>
                                     <span>Security</span>
