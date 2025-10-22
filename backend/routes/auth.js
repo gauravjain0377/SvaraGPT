@@ -802,20 +802,50 @@ async function issueTokens(user, req) {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    // Get IP address
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || 
-               req.headers['x-real-ip'] || 
-               req.connection?.remoteAddress ||
-               req.socket?.remoteAddress || 
-               "unknown";
+    // Get IP address - try multiple sources
+    let ip = "unknown";
+    
+    // Check x-forwarded-for header (common in proxies/load balancers)
+    if (req.headers['x-forwarded-for']) {
+        const forwardedIps = req.headers['x-forwarded-for'].split(',');
+        ip = forwardedIps[0].trim();
+    } 
+    // Check x-real-ip header
+    else if (req.headers['x-real-ip']) {
+        ip = req.headers['x-real-ip'];
+    }
+    // Fallback to connection/socket remote address
+    else if (req.connection?.remoteAddress) {
+        ip = req.connection.remoteAddress;
+    }
+    else if (req.socket?.remoteAddress) {
+        ip = req.socket.remoteAddress;
+    }
+    
+    // Clean up IPv6 localhost to IPv4
+    if (ip === '::1') {
+        ip = '127.0.0.1';
+    }
+    // Remove IPv6 prefix if present
+    if (ip && ip.includes('::ffff:')) {
+        ip = ip.replace('::ffff:', '');
+    }
+    
+    console.log('🌐 [issueTokens] Extracted IP:', ip);
     
     // Parse User-Agent using ua-parser-js
     const userAgent = req.headers["user-agent"] || "unknown";
     const parser = new UAParser(userAgent);
     const uaResult = parser.getResult();
     
+    console.log('🔍 [issueTokens] UA Parser Result:', {
+        device: uaResult.device,
+        browser: uaResult.browser,
+        os: uaResult.os
+    });
+    
     // Extract device information
-    const device = uaResult.device.type || "desktop"; // mobile, tablet, desktop
+    const deviceType = uaResult.device.type || "desktop"; // mobile, tablet, desktop
     const browser = uaResult.browser.name || "Unknown Browser";
     const browserVersion = uaResult.browser.version || "";
     const os = uaResult.os.name || "Unknown OS";
@@ -827,19 +857,35 @@ async function issueTokens(user, req) {
     let countryCode = "XX";
     let city = "Unknown";
     
-    if (ip && ip !== "unknown" && !ip.includes('::1') && !ip.includes('127.0.0.1')) {
-        const geoData = await getGeolocation(ip);
-        country = geoData.country;
-        countryCode = geoData.countryCode;
-        city = geoData.city;
-        location = city !== "Unknown" ? `${city}, ${country}` : country;
+    if (ip && ip !== "unknown" && !ip.includes('127.0.0.1') && !ip.startsWith('192.168.') && !ip.startsWith('10.')) {
+        console.log('🌍 [issueTokens] Looking up geolocation for IP:', ip);
+        try {
+            const geoData = await getGeolocation(ip);
+            country = geoData.country;
+            countryCode = geoData.countryCode;
+            city = geoData.city;
+            location = city !== "Unknown" ? `${city}, ${country}` : country;
+            console.log('✅ [issueTokens] Geolocation result:', { country, countryCode, city });
+        } catch (error) {
+            console.error('❌ [issueTokens] Geolocation lookup failed:', error);
+        }
+    } else {
+        console.log('⚠️ [issueTokens] Skipping geolocation for local IP:', ip);
+        // For localhost during development, show test location data
+        if (process.env.NODE_ENV !== 'production') {
+            country = "Local Development";
+            countryCode = "IN";
+            city = "Localhost";
+            location = "Localhost (Dev Mode)";
+            console.log('🔧 [issueTokens] Using development mock location');
+        }
     }
 
     user.refreshTokens.push({
         token: refreshToken,
         userAgent,
         ip,
-        device,
+        device: deviceType,
         browser: browserVersion ? `${browser} ${browserVersion}` : browser,
         os: osVersion ? `${os} ${osVersion}` : os,
         location,
@@ -1047,11 +1093,22 @@ router.get("/sessions", authGuard, async (req, res) => {
             const countryCode = t.countryCode || 'XX';
             const flag = getCountryFlag(countryCode);
             
+            // Better device name formatting
+            const deviceName = t.os || 'Unknown Device';
+            const browserName = t.browser || 'Unknown Browser';
+            
+            // Clean up IP address display
+            let displayIp = t.ip || 'Unknown IP';
+            if (displayIp.includes('::ffff:')) {
+                displayIp = displayIp.replace('::ffff:', '');
+            }
+            if (displayIp === '::1') displayIp = '127.0.0.1 (localhost)';
+            
             return {
                 id: sessionId,
-                device: t.os || 'Unknown OS',
-                browser: t.browser || 'Unknown Browser',
-                ip: t.ip || 'Unknown IP',
+                device: deviceName,
+                browser: browserName,
+                ip: displayIp,
                 country: t.country || 'Unknown',
                 countryCode: countryCode,
                 city: t.city || 'Unknown',

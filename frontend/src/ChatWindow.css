@@ -1457,10 +1457,10 @@
 
 .backup-code {
     padding: 12px 8px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: 1px solid #764ba2;
+    background: #ffffff;
+    border: 2px solid #e0e0e0;
     border-radius: 8px;
-    color: #fff;
+    color: #000000;
     font-family: 'Courier New', monospace;
     font-size: 13px;
     font-weight: 700;
@@ -1472,17 +1472,20 @@
     gap: 6px;
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .backup-code:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    background: #f0f0f0;
+    border-color: #4a90e2;
 }
 
 .backup-code i {
     font-size: 12px;
-    opacity: 0.9;
+    opacity: 0.6;
+    color: #666;
 }
 
 .no-codes {
@@ -1545,25 +1548,29 @@
 }
 
 .twofa-copy-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #2a2a2a;
     color: white;
+    border: 1px solid #444;
 }
 
 .twofa-copy-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #5568d3 0%, #63408b 100%);
+    background: #333;
+    border-color: #4a90e2;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
 .twofa-download-btn {
-    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    background: #2a2a2a;
     color: white;
+    border: 1px solid #444;
 }
 
 .twofa-download-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    background: #333;
+    border-color: #4a90e2;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
 .twofa-copy-btn:disabled,
@@ -1575,7 +1582,7 @@
 .twofa-done-btn {
     width: 100%;
     padding: 14px;
-    background: #4caf50;
+    background: #da7756;
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -1591,9 +1598,9 @@
 }
 
 .twofa-done-btn:hover {
-    background: #45a049;
+    background: #c96647;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    box-shadow: 0 4px 12px rgba(218, 119, 86, 0.4);
 }
 
 .twofa-warning-text {
@@ -1625,7 +1632,7 @@
 
 .twofa-success-icon {
     font-size: 64px;
-    color: #4caf50;
+    color: #da7756;
     margin-bottom: 20px;
 }
 
