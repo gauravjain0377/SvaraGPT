@@ -42,8 +42,9 @@ export async function guestOrAuthGuard(req, res, next) {
         // Set cookie that expires in 30 days
         res.cookie('svara_guest_id', guestId, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: true, // required for cross-site cookies
+            sameSite: 'none', // allow cross-site between Vercel and Render
+            path: '/',
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
     }

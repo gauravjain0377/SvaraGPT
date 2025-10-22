@@ -59,13 +59,13 @@ app.use(express.json());
 app.use(cors({
     origin: (origin, callback) => {
         const normalizedOrigin = normalizeOrigin(origin);
-        // Log the origin for debugging
-        
-        if (!origin || (normalizedOrigin && allowedOrigins.includes(normalizedOrigin))) {
-            
-            return callback(null, origin);
+        // Allow non-browser requests or same-originless (like curl) and SSR prefetch
+        if (!origin) {
+            return callback(null, true);
         }
-        
+        if (normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) {
+            return callback(null, true);
+        }
         console.log(`❌ CORS blocked for: ${origin}`);
         return callback(new Error("Not allowed by CORS"));
     },
