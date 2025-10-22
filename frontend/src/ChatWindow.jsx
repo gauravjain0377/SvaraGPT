@@ -18,7 +18,7 @@ function ChatWindow() {
         prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
         currentProject, setCurrentProject, projects, setProjects, allThreads, setAllThreads, prevChats
     } = useContext(MyContext);
-    const { user, logout } = useAuth();
+    const { user, logout, loading: authLoading, isInitialized } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
@@ -352,7 +352,7 @@ function ChatWindow() {
     }
 
     const handleSettingsClick = () => {
-        setShowSettingsModal(true);
+        navigate('/settings/general');
         setIsOpen(false);
     }
 
@@ -684,9 +684,11 @@ function ChatWindow() {
                                 )}
                             </div>
                         ) : (
-                            <button className="loginBtn" onClick={() => navigate('/login')}>
-                                Log in
-                            </button>
+                            !authLoading && isInitialized && (
+                                <button className="loginBtn" onClick={() => navigate('/login')}>
+                                    Log in
+                                </button>
+                            )
                         )}
                     </div>
                 </div>

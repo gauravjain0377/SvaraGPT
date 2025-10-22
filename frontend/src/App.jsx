@@ -5,6 +5,7 @@ import {MyContext} from "./MyContext.jsx";
 import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import {v1 as uuidv1} from "uuid";
+import { useAuth } from "./context/AuthContext.jsx";
 
 // Helper function to determine active section from path
 function getActiveSectionFromPath(path) {
@@ -25,6 +26,7 @@ function getActiveSettingsTab(path) {
 function App() {
   const params = useParams();
   const location = useLocation();
+  const { user, isInitialized } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [reply, setReply] = useState(null);
   const [currThreadId, setCurrThreadId] = useState(params.chatId || uuidv1());
@@ -34,8 +36,8 @@ function App() {
   const [activeSection, setActiveSection] = useState(getActiveSectionFromPath(location.pathname));
   const [activeSettingsTab, setActiveSettingsTab] = useState(getActiveSettingsTab(location.pathname));
 
-  // Project Management State
-  const [projects, setProjects] = useState([]); // [{id, name, chats: []}]
+  // Project Management State - Initialize empty, will be loaded by Sidebar
+  const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null); // Current project context for new chats
   const [selectedProject, setSelectedProject] = useState(params.projectId || null); // Selected project in UI
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -48,6 +50,18 @@ function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null); // {type: 'chat'/'project', id, name}
   const [activeFeedback, setActiveFeedback] = useState({});
+
+  // Clear projects when user logs out
+  useEffect(() => {
+    if (!user && isInitialized) {
+      setProjects([]);
+      setAllThreads([]);
+      setCurrentProject(null);
+      setSelectedProject(null);
+      // Clear localStorage
+      localStorage.removeItem('projects');
+    }
+  }, [user, isInitialized]);
 
   // Update state based on URL changes
   useEffect(() => {

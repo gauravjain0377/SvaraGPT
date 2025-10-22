@@ -39,7 +39,7 @@ function Sidebar() {
     setActiveSection,
   } = useContext(MyContext);
 
-  const { user } = useAuth();
+  const { user, loading, isInitialized } = useAuth();
 
   // Remove local activeSection state since we're now using it from context
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -114,7 +114,7 @@ function Sidebar() {
     setIsLoading(prev => ({ ...prev, projects: true, error: null }));
     
     try {
-      const response = await fetch(apiUrl("/api/projects"), {
+      const response = await fetch(apiUrl("/api/projects?limit=1000&page=1"), {
         credentials: "include"
       });
       if (!response.ok) {
@@ -122,14 +122,14 @@ function Sidebar() {
       }
       const responseData = await response.json();
       
-      // Handle both formats: { data: [...] } or directly the array
-      const data = responseData.data || responseData;
+      // Backend returns shape: { projects: [...], total, page, totalPages }
+      const projectsArray = Array.isArray(responseData?.projects) ? responseData.projects : [];
+      setProjects(projectsArray);
       
-      // Ensure we have an array of projects
-      setProjects(Array.isArray(data) ? data : []);
-      
-      // Save to localStorage for offline access (optional)
-      localStorage.setItem('projects', JSON.stringify(Array.isArray(data) ? data : []));
+      // Save to localStorage for offline access (only if user is authenticated)
+      if (user) {
+        localStorage.setItem('projects', JSON.stringify(projectsArray));
+      }
     } catch (err) {
       console.error("Error fetching projects:", err);
       
@@ -145,13 +145,14 @@ function Sidebar() {
   // Add error boundary state
   const [hasError, setHasError] = useState(false);
 
+  // Define errorHandler outside useEffect so it can be referenced by multiple effects
+  const errorHandler = (error) => {
+    console.error('Error in Sidebar component:', error);
+    setHasError(true);
+  };
+
   // Error boundary effect
   useEffect(() => {
-    const errorHandler = (error) => {
-      console.error('Error in Sidebar component:', error);
-      setHasError(true);
-    };
-
     // Add error event listener
     window.addEventListener('error', errorHandler);
     
@@ -162,45 +163,42 @@ function Sidebar() {
         await getAllThreads();
         
         // Fetch projects for the authenticated user
-        const projectsResponse = await fetch(apiUrl("/api/projects"), {
-          credentials: "include"
-        });
-        
-        if (projectsResponse.ok) {
-          const projectsData = await projectsResponse.json();
-          // Check if the response has a data property (from the API structure)
-          const projectsArray = projectsData.data || projectsData;
-          
-          // Set projects from server (empty array for new users)
-          setProjects(Array.isArray(projectsArray) ? projectsArray : []);
-          
-          // Save to localStorage for offline access (optional)
-          localStorage.setItem('projects', JSON.stringify(Array.isArray(projectsArray) ? projectsArray : []));
-        } else {
-          // If server returns error, set empty array (new user or auth issue)
-          setProjects([]);
-        }
+        await getAllProjects();
       } catch (error) {
         console.error('Error initializing data:', error);
-        // On error, set empty array (don't use localStorage)
+        // On error, set empty array (don't use localStorage fallback to prevent stale data)
         setProjects([]);
       }
     };
     
-    initData();
-
-    // Cleanup
+    // Only initialize data if user is logged in and auth is initialized
+    if (user && isInitialized) {
+      initData();
+    } else if (!user && isInitialized) {
+      // Clear projects when user logs out
+      setProjects([]);
+      setAllThreads([]);
+    }
+    
+    // Cleanup when component unmounts
     return () => {
       window.removeEventListener('error', errorHandler);
     };
-  }, []); // Empty dependency array to run only on mount
+  }, [user, isInitialized]); // Add user and isInitialized to dependency array to reload data when user logs in
 
   // Update threads when current thread or projects change
   useEffect(() => {
-    if (!isLoading.threads) {
+    if (!isLoading.threads && user && isInitialized) {
       getAllThreads();
     }
-  }, [currThreadId, projects]);
+  }, [currThreadId, projects, user, isInitialized]);
+
+  // Force reload projects when user logs in (transition from null to authenticated)
+  useEffect(() => {
+    if (user && isInitialized && !isLoading.projects) {
+      getAllProjects();
+    }
+  }, [user, isInitialized]);
 
   // Show error state if something went wrong
   if (hasError) {
@@ -294,8 +292,10 @@ function Sidebar() {
           chats: project.chats?.filter((chat) => chat?.threadId !== threadId) || [],
         }));
         
-        // Save to localStorage
-        localStorage.setItem('projects', JSON.stringify(newProjects));
+        // Save to localStorage only if user is authenticated
+        if (user) {
+          localStorage.setItem('projects', JSON.stringify(newProjects));
+        }
         return newProjects;
       };
       
@@ -339,8 +339,10 @@ function Sidebar() {
       });
       setProjects((prev) => {
         const updatedProjects = [...prev, newProject];
-        // Save to localStorage
-        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        // Save to localStorage only if user is authenticated
+        if (user) {
+          localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        }
         return updatedProjects;
       });
     } catch (err) {
@@ -368,8 +370,10 @@ function Sidebar() {
         const updatedProjects = prev.map((project) =>
           project.id === projectId ? { ...project, name: newName } : project
         );
-        // Save to localStorage
-        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        // Save to localStorage only if user is authenticated
+        if (user) {
+          localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        }
         return updatedProjects;
       });
     } catch (err) {
@@ -394,8 +398,10 @@ function Sidebar() {
       });
       setProjects((prev) => {
         const updatedProjects = prev.filter((p) => p.id !== projectId);
-        // Save to localStorage
-        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        // Save to localStorage only if user is authenticated
+        if (user) {
+          localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        }
         return updatedProjects;
       });
     } catch (err) {
@@ -736,7 +742,7 @@ function Sidebar() {
             </div>
 
             {/* Projects List */}
-            {!user ? (
+            {!user && isInitialized ? (
               <div className="loginPrompt">
                 <div className="loginPromptIcon">
                   <i className="fa-solid fa-lock"></i>
@@ -752,7 +758,7 @@ function Sidebar() {
                   Log in to Continue
                 </button>
               </div>
-            ) : (
+            ) : user && isInitialized ? (
               <div className="projectsList">
                 {projects.map((project) => (
                 <div key={project.id} className="projectItem">
@@ -918,6 +924,13 @@ function Sidebar() {
                   )}
                 </div>
               ))}
+              </div>
+            ) : (
+              <div className="loading-state">
+                <div className="loading-spinner">
+                  <i className="fa-solid fa-spinner fa-spin"></i>
+                </div>
+                <p>Loading projects...</p>
               </div>
             )}
           </div>
