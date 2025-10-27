@@ -72,7 +72,7 @@ function ChatWindow() {
     // Reset textarea height when prompt is cleared
     useEffect(() => {
         if (prompt === '' && textareaRef.current) {
-            textareaRef.current.style.height = '40px';
+            textareaRef.current.style.height = '24px';
         }
     }, [prompt]);
 

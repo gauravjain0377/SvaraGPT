@@ -1,5 +1,5 @@
 import "./Chat.css";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { MyContext } from "./MyContext";
 import { useAuth } from "./context/AuthContext";
 import ReactMarkdown from "react-markdown";
@@ -37,10 +37,22 @@ function Chat() {
     const [shareData, setShareData] = useState(null);
     const [editingMessage, setEditingMessage] = useState(null);
     const [regeneratingIndices, setRegeneratingIndices] = useState(new Set());
+    const editTextareaRef = useRef(null);
 
     // Handler for starting edit
-    const handleStartEdit = (chat) => {
-        setEditingMessage({ ...chat, editContent: chat.content });
+    const handleStartEdit = (chat, index) => {
+        setEditingMessage({ 
+            ...chat, 
+            editContent: chat.content,
+            editIndex: index 
+        });
+        // Auto-resize textarea after it's rendered
+        setTimeout(() => {
+            if (editTextareaRef.current) {
+                editTextareaRef.current.style.height = 'auto';
+                editTextareaRef.current.style.height = Math.min(editTextareaRef.current.scrollHeight, 200) + 'px';
+            }
+        }, 0);
     };
 
     // Handler for updating edit content
@@ -53,9 +65,9 @@ function Chat() {
         if (!editingMessage || !editingMessage.editContent || editingMessage.editContent.trim() === '') return;
         
         const newContent = editingMessage.editContent.trim();
-        const messageIndex = prevChats.findIndex(c => c === editingMessage || c.content === editingMessage.content);
+        const messageIndex = editingMessage.editIndex;
         
-        if (messageIndex === -1) return;
+        if (messageIndex === undefined || messageIndex === -1) return;
         
         // Update the user message with edited content
         const updatedChats = [...prevChats];
@@ -278,95 +290,112 @@ function Chat() {
                                 className={isUser ? "messageUser" : `messageAssistant ${isRegenerating ? "regenerating" : ""}`} 
                                 key={messageId}
                             >
-                                <div className="messageContent">
-                                    <div className="messageAvatar">
-                                        {isUser ? (
-                                            <div className="userAvatar">
-                                                {user ? (
-                                                    (() => {
-                                                        if (user.name) {
-                                                            const names = user.name.split(" ");
-                                                            if (names.length >= 2) {
-                                                                return names[0].charAt(0).toUpperCase() + names[1].charAt(0).toUpperCase();
-                                                            }
-                                                            return user.name.charAt(0).toUpperCase();
-                                                        }
-                                                        return user.email ? user.email.charAt(0).toUpperCase() : "";
-                                                    })()
-                                                ) : (
-                                                    <i className="fa-solid fa-user"></i>
-                                                )}
+                                {isUser && editingMessage && editingMessage.editIndex === idx ? (
+                                    <div className="messageEditContainerFull">
+                                        <div className="messageEditWrapper">
+                                            <textarea
+                                                ref={editTextareaRef}
+                                                className="messageEditInput"
+                                                value={editingMessage.editContent}
+                                                onChange={(e) => {
+                                                    handleEditChange(e.target.value);
+                                                    // Auto-resize textarea
+                                                    e.target.style.height = 'auto';
+                                                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleConfirmEditAndRegenerate();
+                                                    } else if (e.key === 'Escape') {
+                                                        handleCancelEdit();
+                                                    }
+                                                }}
+                                                aria-label="Edit message"
+                                                autoFocus
+                                                rows={1}
+                                            />
+                                            <div className="editActions">
+                                                <button
+                                                    type="button"
+                                                    className="editActionBtn cancelBtn"
+                                                    onClick={handleCancelEdit}
+                                                    aria-label="Cancel edit"
+                                                >
+                                                    <i className="fa-solid fa-times"></i>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="editActionBtn confirmBtn"
+                                                    onClick={handleConfirmEditAndRegenerate}
+                                                    aria-label="Confirm edit and regenerate"
+                                                >
+                                                    <i className="fa-solid fa-arrow-up"></i>
+                                                </button>
                                             </div>
-                                        ) : (
-                                            <div className="assistantAvatar">
-                                                <img src={logo3} alt="SvaraGPT Logo" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="messageBody">
-                                        <div className="messageHeader">
-                                            {isUser && chat.edited && <span className="messageBadge">Edited</span>}
                                         </div>
-                                        <div className="messageText">
-                                            {isUser && (!editingMessage || editingMessage.content !== chat.content) && (
-                                                <div className="userMessageWrapper">
-                                                    <div className="userMessageBox">
-                                                        <p>{chat.content}</p>
-                                                    </div>
-                                                    <div className="messageActionsHover">
-                                                        <button
-                                                            type="button"
-                                                            className="messageActionIcon"
-                                                            onClick={() => {
-                                                                handleCopyMessage?.(chat);
-                                                                setShowCopyToast(true);
-                                                                setTimeout(() => setShowCopyToast(false), 2000);
-                                                            }}
-                                                            aria-label="Copy message"
-                                                        >
-                                                            <i className="fa-solid fa-copy"></i>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="messageActionIcon"
-                                                            onClick={() => handleStartEdit(chat)}
-                                                            aria-label="Edit message"
-                                                        >
-                                                            <i className="fa-solid fa-pen-to-square"></i>
-                                                        </button>
-                                                    </div>
+                                    </div>
+                                ) : (
+                                    <div className="messageContent">
+                                        <div className="messageAvatar">
+                                            {isUser ? (
+                                                <div className="userAvatar">
+                                                    {user ? (
+                                                        (() => {
+                                                            if (user.name) {
+                                                                const names = user.name.split(" ");
+                                                                if (names.length >= 2) {
+                                                                    return names[0].charAt(0).toUpperCase() + names[1].charAt(0).toUpperCase();
+                                                                }
+                                                                return user.name.charAt(0).toUpperCase();
+                                                            }
+                                                            return user.email ? user.email.charAt(0).toUpperCase() : "";
+                                                        })()
+                                                    ) : (
+                                                        <i className="fa-solid fa-user"></i>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="assistantAvatar">
+                                                    <img src={logo3} alt="SvaraGPT Logo" />
                                                 </div>
                                             )}
-                                            {isUser && editingMessage && editingMessage.content === chat.content && (
-                                                <div className="messageEditContainer">
-                                                    <textarea
-                                                        className="messageEditInput"
-                                                        value={editingMessage.editContent}
-                                                        onChange={(e) => handleEditChange(e.target.value)}
-                                                        aria-label="Edit message"
-                                                        autoFocus
-                                                    />
-                                                    <div className="editActions">
-                                                        <button
-                                                            type="button"
-                                                            className="editActionBtn cancelBtn"
-                                                            onClick={handleCancelEdit}
-                                                            aria-label="Cancel edit"
-                                                        >
-                                                            <i className="fa-solid fa-times"></i>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="editActionBtn confirmBtn"
-                                                            onClick={handleConfirmEditAndRegenerate}
-                                                            aria-label="Confirm edit and regenerate"
-                                                        >
-                                                            <i className="fa-solid fa-check"></i>
-                                                        </button>
+                                        </div>
+                                        <div className="messageBody">
+                                            <div className="messageHeader">
+                                                {isUser && chat.edited && <span className="messageBadge">Edited</span>}
+                                            </div>
+                                            <div className="messageText">
+                                                {isUser && (
+                                                    <div className="userMessageWrapper">
+                                                        <div className="userMessageBox">
+                                                            <p>{chat.content}</p>
+                                                        </div>
+                                                        <div className="messageActionsHover">
+                                                            <button
+                                                                type="button"
+                                                                className="messageActionIcon"
+                                                                onClick={() => {
+                                                                    handleCopyMessage?.(chat);
+                                                                    setShowCopyToast(true);
+                                                                    setTimeout(() => setShowCopyToast(false), 2000);
+                                                                }}
+                                                                aria-label="Copy message"
+                                                            >
+                                                                <i className="fa-solid fa-copy"></i>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="messageActionIcon"
+                                                                onClick={() => handleStartEdit(chat, idx)}
+                                                                aria-label="Edit message"
+                                                            >
+                                                                <i className="fa-solid fa-pen-to-square"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
-                                            {isAssistant && chat.isLoading && (
+                                                )}
+                                                {isAssistant && chat.isLoading && (
                                                 <div className="typingDots" aria-label="Assistant is typing">
                                                     <span className="dot"></span>
                                                     <span className="dot"></span>
@@ -441,8 +470,9 @@ function Chat() {
                                                 </div>
                                             </div>
                                         )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         );
                     })}
