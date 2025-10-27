@@ -188,12 +188,13 @@
 
 .inputWrapper {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     background-color: #2a2a2a;
     border: 1px solid #404040;
     border-radius: 24px;
-    padding: 8px;
+    padding: 8px 8px 8px 20px;
     transition: border-color 0.2s;
+    width: 100%;
 }
 
 .inputWrapper:focus-within {
@@ -233,11 +234,10 @@
     color: #ececec;
     font-size: 16px;
     line-height: 24px;
-    padding: 8px 0;
+    padding: 8px 12px;
     resize: none;
     outline: none;
-    max-height: 200px;
-    overflow-y: auto;
+    height: 40px;
 }
 
 .chatInput::placeholder {
@@ -245,9 +245,9 @@
 }
 
 .sendBtn {
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
     border: none;
     background-color: #404040;
     color: #666;
@@ -256,7 +256,7 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    margin-left: 8px;
+    flex-shrink: 0;
 }
 
 .sendBtn.active {

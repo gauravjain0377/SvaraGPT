@@ -913,22 +913,30 @@ function ChatWindow() {
             <div className="inputSection">
                 <div className="inputContainer">
                     <div className="inputWrapper">
-                        <div className="inputActions">
-                            <button className="actionBtn" title="Attach file">
-                                <i className="fa-solid fa-paperclip"></i>
-                            </button>
-                        </div>
                         <input 
                             className="chatInput"
                             placeholder="How can I help you today?"
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey ? getReply() : ''}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (prompt.trim()) {
+                                        getReply();
+                                    }
+                                }
+                            }}
                         />
                         <button 
                             className={`sendBtn ${prompt.trim() ? 'active' : ''}`} 
-                            onClick={getReply}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (prompt.trim()) {
+                                    getReply();
+                                }
+                            }}
                             disabled={!prompt.trim()}
+                            type="button"
                         >
                             <i className="fa-solid fa-arrow-up"></i>
                         </button>
