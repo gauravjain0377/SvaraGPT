@@ -62,11 +62,19 @@ function ChatWindow() {
     
     // AbortController for stopping generation
     const abortControllerRef = useRef(null);
+    const textareaRef = useRef(null);
 
     // Close dropdown when user state changes
     useEffect(() => {
         setIsOpen(false);
     }, [user]);
+
+    // Reset textarea height when prompt is cleared
+    useEffect(() => {
+        if (prompt === '' && textareaRef.current) {
+            textareaRef.current.style.height = '40px';
+        }
+    }, [prompt]);
 
     const queueRef = useRef([]);
     const isProcessingRef = useRef(false);
@@ -1090,11 +1098,17 @@ function ChatWindow() {
             <div className="inputSection">
                 <div className="inputContainer">
                     <div className="inputWrapper">
-                        <input 
+                        <textarea 
+                            ref={textareaRef}
                             className="chatInput"
                             placeholder="How can I help you today?"
                             value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
+                            onChange={(e) => {
+                                setPrompt(e.target.value);
+                                // Auto-resize textarea
+                                e.target.style.height = 'auto';
+                                e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -1106,6 +1120,7 @@ function ChatWindow() {
                                     }
                                 }
                             }}
+                            rows={1}
                         />
                         <button 
                             className={`sendBtn ${(prompt.trim() || isGenerating || isTyping) ? 'active' : ''} ${(isGenerating || isTyping) ? 'generating' : ''}`} 

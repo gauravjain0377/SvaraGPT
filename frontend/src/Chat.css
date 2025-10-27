@@ -225,6 +225,8 @@
     right: 0;
     height: 1px;
     background: linear-gradient(90deg, transparent, #3a3a3a 20%, #3a3a3a 80%, transparent);
+    z-index: 0;
+    pointer-events: none;
 }
 
 /* Add more space above the next user message */
@@ -242,6 +244,8 @@
     gap: 12px;
     max-width: 768px;
     margin: 0 auto;
+    position: relative;
+    z-index: 2;
 }
 
 .messageAvatar {
@@ -289,6 +293,7 @@
     flex: 1;
     min-width: 0;
     position: relative;
+    z-index: 2;
 }
 
 .messageUser .messageText {
@@ -349,6 +354,8 @@
 
 .messageAssistant .messageText {
     padding: 8px 0;
+    position: relative;
+    z-index: 2;
 }
 
 .messageAssistant .messageText p,
@@ -356,6 +363,11 @@
     color: #e0e0e0;
     line-height: 1.7;
     font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    position: relative;
+    z-index: 2;
 }
 
 .hljs {
@@ -374,6 +386,7 @@ code {
 
 .messageBody {
     position: relative;
+    z-index: 2;
 }
 
 .messageActions {

@@ -237,7 +237,10 @@
     padding: 8px 12px;
     resize: none;
     outline: none;
-    height: 40px;
+    min-height: 24px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: inherit;
 }
 
 .chatInput::placeholder {
@@ -877,7 +880,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10000000;
-    animation: fadeIn 0.2s ease-out;
+    animation: backdropFadeIn 0.2s ease-out;
 }
 
 .export-modal-container {
@@ -1343,7 +1346,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10000001;
-    animation: fadeIn 0.2s ease-out;
+    animation: backdropFadeIn 0.2s ease-out;
 }
 
 .twofa-modal-container {
@@ -1877,7 +1880,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10000001;
-    animation: fadeIn 0.2s ease-out;
+    animation: backdropFadeIn 0.2s ease-out;
 }
 
 /* ============================================
@@ -1896,7 +1899,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10000001;
-    animation: fadeIn 0.2s ease-out;
+    animation: backdropFadeIn 0.2s ease-out;
 }
 
 .share-modal-container {
