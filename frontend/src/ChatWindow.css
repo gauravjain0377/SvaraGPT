@@ -273,6 +273,22 @@
     cursor: not-allowed;
 }
 
+.sendBtn.generating {
+    background-color: #1e1e1e;
+    color: white;
+    cursor: pointer;
+    border: 1px solid #404040;
+}
+
+.sendBtn.generating:hover {
+    background-color: #2a2a2a;
+    transform: translateY(-1px);
+}
+
+.sendBtn.generating i {
+    font-size: 14px;
+}
+
 .disclaimer {
     text-align: center;
     font-size: 12px;

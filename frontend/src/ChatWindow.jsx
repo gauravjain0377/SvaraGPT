@@ -17,7 +17,8 @@ function ChatWindow() {
     
     const {
         prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
-        currentProject, setCurrentProject, projects, setProjects, allThreads, setAllThreads, prevChats
+        currentProject, setCurrentProject, projects, setProjects, allThreads, setAllThreads, prevChats,
+        isGenerating, setIsGenerating, isTyping
     } = useContext(MyContext);
     const { user, logout, loading: authLoading, isInitialized } = useAuth();
     const navigate = useNavigate();
@@ -58,6 +59,9 @@ function ChatWindow() {
     const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
     const [viewedBackupCodes, setViewedBackupCodes] = useState([]);
     const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+    
+    // AbortController for stopping generation
+    const abortControllerRef = useRef(null);
 
     // Close dropdown when user state changes
     useEffect(() => {
@@ -128,6 +132,19 @@ function ChatWindow() {
     };
 
     // Handler for feedback (thumbs up/down)
+    // Function to stop generation
+    const stopGeneration = () => {
+        if (abortControllerRef.current) {
+            // Abort the fetch request
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setLoading(false);
+            setIsGenerating(false);
+            setReply(""); // Clear the reply so typewriter stops - Chat component will preserve partial content
+            // Don't remove the loading message here - the Chat component will handle updating it with partial content
+        }
+    };
+
     const handleFeedbackToggle = (chat, feedbackType) => {
         if (!chat.messageId) {
             // Generate a messageId if it doesn't exist
@@ -195,7 +212,11 @@ function ChatWindow() {
         const activePrompt = (overridePrompt ?? prompt).trim();
         if(!activePrompt) return;
         setLoading(true);
+        setIsGenerating(true);
         setNewChat(false);
+
+        // Create new AbortController for this request
+        abortControllerRef.current = new AbortController();
 
         let usedPrompt = activePrompt;
 
@@ -236,7 +257,8 @@ function ChatWindow() {
             try {
                 const usageResponse = await fetch(apiUrl("/api/guest-usage"), {
                     method: "GET",
-                    credentials: "include"
+                    credentials: "include",
+                    signal: abortControllerRef.current.signal
                 });
                 const usageData = await usageResponse.json();
                 if (usageData.limitReached) {
@@ -244,9 +266,17 @@ function ChatWindow() {
                     // Remove the loading message
                     setPrevChats(prevState => prevState.filter(chat => !(chat.role === "assistant" && chat.isLoading)));
                     setLoading(false);
+                    setIsGenerating(false);
                     return;
                 }
             } catch (err) {
+                if (err.name === 'AbortError') {
+                    console.log('Request aborted');
+                    setPrevChats(prevState => prevState.filter(chat => !(chat.role === "assistant" && chat.isLoading)));
+                    setLoading(false);
+                    setIsGenerating(false);
+                    return;
+                }
                 console.error("Error checking guest usage:", err);
                 // Continue if error, let backend handle
             }
@@ -257,7 +287,8 @@ function ChatWindow() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ message: usedPrompt, threadId: currThreadId })
+            body: JSON.stringify({ message: usedPrompt, threadId: currThreadId }),
+            signal: abortControllerRef.current.signal
         };
 
         const currentPrompt = usedPrompt; // capture
@@ -310,32 +341,167 @@ function ChatWindow() {
                 setAllThreads(prev => prev.map(t => t.threadId === newThread.threadId ? { ...t, title: newThread.title } : t));
             }
         } catch (err) {
-            console.log(err);
-            // Replace loader with an error message
+            if (err.name === 'AbortError') {
+                console.log('Generation stopped by user');
+                // Don't remove the loading message - let Chat component preserve partial content
+                // The Chat component's useEffect will handle updating the message with latestReply
+            } else {
+                console.log(err);
+                // Replace loader with an error message
+                setPrevChats(prev => {
+                    const updated = [...prev];
+                    for (let i = updated.length - 1; i >= 0; i--) {
+                        if (updated[i].role === "assistant" && updated[i].isLoading) {
+                            updated[i] = { role: "assistant", content: "Sorry, something went wrong. Please try again." };
+                            break;
+                        }
+                    }
+                    return updated;
+                });
+            }
+        } finally {
+            setLoading(false);
+            setIsGenerating(false);
+            abortControllerRef.current = null;
+        }
+    }, [prompt, setLoading, setNewChat, setPrevChats, currThreadId, currentProject, prevChats.length, setProjects, setAllThreads, setPrompt, setReply, setShowGuestLimitModal, navigate, projects, allThreads, user]);
+
+    // Function to regenerate assistant response without duplicating user message
+    const regenerateResponse = useCallback(async (userPrompt, regenerateIndex) => {
+        setLoading(true);
+        setIsGenerating(true);
+
+        // Create new AbortController for this request
+        abortControllerRef.current = new AbortController();
+
+        // Check guest limit before sending
+        if (!user) {
+            try {
+                const usageResponse = await fetch(apiUrl("/api/guest-usage"), {
+                    method: "GET",
+                    credentials: "include",
+                    signal: abortControllerRef.current.signal
+                });
+                const usageData = await usageResponse.json();
+                if (usageData.limitReached) {
+                    setShowGuestLimitModal(true);
+                    setLoading(false);
+                    setIsGenerating(false);
+                    return;
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    console.log('Request aborted');
+                    setLoading(false);
+                    setIsGenerating(false);
+                    return;
+                }
+                console.error("Error checking guest usage:", err);
+            }
+        }
+
+        // Show loading indicator for the assistant message being regenerated
+        setPrevChats(prev => {
+            const updated = [...prev];
+            const assistantPosition = regenerateIndex + 1;
+            // Replace the assistant message with loading state
+            if (updated[assistantPosition]) {
+                updated[assistantPosition] = { role: "assistant", content: "", isLoading: true };
+            }
+            return updated;
+        });
+
+        try {
+            const options = {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ message: userPrompt, threadId: currThreadId }),
+                signal: abortControllerRef.current.signal
+            };
+
+            const response = await fetch(apiUrl("/api/chat"), options);
+            
+            // Check if guest limit reached
+            if (response.status === 403) {
+                const errorData = await response.json();
+                if (errorData.error && errorData.error.includes("Guest limit")) {
+                    setShowGuestLimitModal(true);
+                    setLoading(false);
+                    setIsGenerating(false);
+                    return;
+                }
+            }
+            
+            const res = await response.json();
+            
+            // Update only the assistant message after the user message, keep all subsequent messages
             setPrevChats(prev => {
                 const updated = [...prev];
-                for (let i = updated.length - 1; i >= 0; i--) {
-                    if (updated[i].role === "assistant" && updated[i].isLoading) {
-                        updated[i] = { role: "assistant", content: "Sorry, something went wrong. Please try again." };
-                        break;
-                    }
-                }
+                const assistantIndex = regenerateIndex + 1;
+                // Only update the specific assistant message, keep everything else
+                updated[assistantIndex] = { role: "assistant", content: res.reply };
                 return updated;
             });
+
+            // Don't call setReply for regeneration since we updated the specific message directly
+            // setReply would trigger typewriter on the LAST message, not the regenerated one
+            // setReply(res.reply);
+
+            window.dispatchEvent(new CustomEvent("svaragpt-reply-received", {
+                detail: { threadId: currThreadId }
+            }));
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                console.log('Generation stopped by user');
+                // Show that regeneration was stopped
+                setPrevChats(prev => {
+                    const updated = [...prev];
+                    const assistantIndex = regenerateIndex + 1;
+                    if (updated[assistantIndex] && updated[assistantIndex].isLoading) {
+                        updated[assistantIndex] = { 
+                            role: "assistant", 
+                            content: "Regeneration stopped.",
+                            wasStopped: true
+                        };
+                    }
+                    return updated;
+                });
+            } else {
+                console.log(err);
+                // Update with error message, keep all subsequent messages
+                setPrevChats(prev => {
+                    const updated = [...prev];
+                    updated[regenerateIndex + 1] = { role: "assistant", content: "Sorry, something went wrong. Please try again." };
+                    return updated;
+                });
+            }
+        } finally {
+            setLoading(false);
+            setIsGenerating(false);
+            abortControllerRef.current = null;
         }
-        setLoading(false);
-    }, [prompt, setLoading, setNewChat, setPrevChats, currThreadId, currentProject, prevChats.length, setProjects, setAllThreads, setPrompt, setReply, setShowGuestLimitModal, navigate, projects, allThreads, user]);
+    }, [user, currThreadId, setReply, setShowGuestLimitModal, setPrevChats, setLoading, setIsGenerating]);
 
     const processQueue = useCallback(() => {
         if (isProcessingRef.current) return;
         const next = queueRef.current.shift();
         if (!next) return;
         isProcessingRef.current = true;
-        getReply(next.prompt).finally(() => {
-            isProcessingRef.current = false;
-            processQueue();
-        });
-    }, [getReply]);
+        
+        // Check if this is a regenerate request
+        if (next.regenerateIndex !== undefined) {
+            regenerateResponse(next.prompt, next.regenerateIndex).finally(() => {
+                isProcessingRef.current = false;
+                processQueue();
+            });
+        } else {
+            getReply(next.prompt).finally(() => {
+                isProcessingRef.current = false;
+                processQueue();
+            });
+        }
+    }, [getReply, regenerateResponse]);
 
     useEffect(() => {
         const handler = (event) => {
@@ -344,9 +510,20 @@ function ChatWindow() {
             queueRef.current.push({ prompt: queuedPrompt });
             processQueue();
         };
+        
+        const regenerateHandler = (event) => {
+            const { prompt, regenerateIndex } = event.detail || {};
+            if (!prompt || regenerateIndex === undefined) return;
+            queueRef.current.push({ prompt, regenerateIndex });
+            processQueue();
+        };
+        
         window.addEventListener("svaragpt-send-prompt", handler);
+        window.addEventListener("svaragpt-regenerate-prompt", regenerateHandler);
+        
         return () => {
             window.removeEventListener("svaragpt-send-prompt", handler);
+            window.removeEventListener("svaragpt-regenerate-prompt", regenerateHandler);
         };
     }, [processQueue]);
 
@@ -921,24 +1098,35 @@ function ChatWindow() {
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    if (prompt.trim()) {
+                                    const isActive = isGenerating || isTyping;
+                                    if (isActive) {
+                                        stopGeneration();
+                                    } else if (prompt.trim()) {
                                         getReply();
                                     }
                                 }
                             }}
                         />
                         <button 
-                            className={`sendBtn ${prompt.trim() ? 'active' : ''}`} 
+                            className={`sendBtn ${(prompt.trim() || isGenerating || isTyping) ? 'active' : ''} ${(isGenerating || isTyping) ? 'generating' : ''}`} 
                             onClick={(e) => {
                                 e.preventDefault();
-                                if (prompt.trim()) {
+                                const isActive = isGenerating || isTyping;
+                                if (isActive) {
+                                    stopGeneration();
+                                } else if (prompt.trim()) {
                                     getReply();
                                 }
                             }}
-                            disabled={!prompt.trim()}
+                            disabled={!prompt.trim() && !isGenerating && !isTyping}
                             type="button"
+                            aria-label={(isGenerating || isTyping) ? "Stop generation" : "Send message"}
                         >
-                            <i className="fa-solid fa-arrow-up"></i>
+                            {(isGenerating || isTyping) ? (
+                                <i className="fa-solid fa-square"></i>
+                            ) : (
+                                <i className="fa-solid fa-arrow-up"></i>
+                            )}
                         </button>
                     </div>
                 </div>

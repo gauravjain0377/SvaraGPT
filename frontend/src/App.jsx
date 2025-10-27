@@ -50,6 +50,8 @@ function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null); // {type: 'chat'/'project', id, name}
   const [activeFeedback, setActiveFeedback] = useState({});
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   // Clear projects when user logs out
   useEffect(() => {
@@ -206,6 +208,10 @@ function App() {
     
     // Navigation
     activeSection, setActiveSection,
+    
+    // Generation state
+    isGenerating, setIsGenerating,
+    isTyping, setIsTyping,
     
     // Chat button handlers
     handleCopyMessage,

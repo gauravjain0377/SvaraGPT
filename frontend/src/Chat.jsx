@@ -26,7 +26,9 @@ function Chat() {
         handleRegenerate,
         handleFeedbackToggle,
         activeFeedback,
-        shareThread
+        shareThread,
+        isGenerating,
+        setIsTyping
     } = useContext(MyContext);
     const { user } = useAuth();
     const [latestReply, setLatestReply] = useState(null);
@@ -34,6 +36,7 @@ function Chat() {
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareData, setShareData] = useState(null);
     const [editingMessage, setEditingMessage] = useState(null);
+    const [regeneratingIndices, setRegeneratingIndices] = useState(new Set());
 
     // Handler for starting edit
     const handleStartEdit = (chat) => {
@@ -84,13 +87,24 @@ function Chat() {
         if (chatIndex > 0 && prevChats[chatIndex - 1].role === 'user') {
             const userMessage = prevChats[chatIndex - 1].content;
             
-            // Remove this assistant message and all subsequent messages
-            setPrevChats(prev => prev.slice(0, chatIndex));
+            // Mark only this specific message as regenerating
+            setRegeneratingIndices(prev => new Set([...prev, chatIndex]));
             
-            // Trigger a new response
-            window.dispatchEvent(new CustomEvent("svaragpt-send-prompt", {
-                detail: { prompt: userMessage, threadId: currThreadId }
-            }));
+            // Wait for fade-out animation before regenerating
+            setTimeout(() => {
+                // Keep all messages, just mark the assistant message for update
+                // Don't remove it, let regenerateResponse handle the update
+                setRegeneratingIndices(new Set());
+                
+                // Trigger regeneration without duplicating user message or removing subsequent messages
+                window.dispatchEvent(new CustomEvent("svaragpt-regenerate-prompt", {
+                    detail: { 
+                        prompt: userMessage, 
+                        regenerateIndex: chatIndex - 1, // The index of the user message
+                        threadId: currThreadId 
+                    }
+                }));
+            }, 300);
         }
     };
 
@@ -117,27 +131,58 @@ function Chat() {
         }
     };
 
+    // Handle when reply is cleared (generation stopped)
     useEffect(() => {
-        if(reply === null || reply === undefined) {
-            setLatestReply(null); //prevchat load
+        if(reply === "" && latestReply) {
+            // Generation was stopped, preserve the partial content
+            setPrevChats(prev => {
+                const updated = [...prev];
+                const lastAssistant = updated.length - 1;
+                if (updated[lastAssistant] && updated[lastAssistant].role === "assistant") {
+                    if (updated[lastAssistant].isLoading) {
+                        updated[lastAssistant] = { role: "assistant", content: latestReply };
+                    }
+                }
+                return updated;
+            });
+            setLatestReply(null);
+        }
+    }, [reply, latestReply, setPrevChats]);
+
+    useEffect(() => {
+        if(reply === null || reply === undefined || reply === "") {
+            if(reply === "") {
+                // Generation was stopped, handled by the effect above
+                return;
+            }
+            setLatestReply(null);
+            setIsTyping(false);
             return;
         }
 
         if(!prevChats?.length) return;
 
         const content = reply?.split(" ") || []; // individual words for simple typewriter
-
+        
+        setIsTyping(true);
         let idx = 0;
         const interval = setInterval(() => {
-            setLatestReply(content.slice(0, idx+1).join(" "));
+            const partialContent = content.slice(0, idx+1).join(" ");
+            setLatestReply(partialContent);
 
             idx++;
-            if(idx >= content.length) clearInterval(interval);
+            if(idx >= content.length) {
+                clearInterval(interval);
+                setIsTyping(false);
+            }
         }, 40);
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            setIsTyping(false);
+        };
 
-    }, [prevChats, reply]);
+    }, [reply, prevChats]);
 
     const suggestedPrompts = [
         {
@@ -224,8 +269,15 @@ function Chat() {
                         const isAssistant = chat.role === "assistant";
                         const isLast = idx === prevChats.length - 1;
                         const showStreaming = isAssistant && isLast && latestReply !== null && !chat.isLoading;
+                        const isStreamingComplete = isAssistant && isLast && !isGenerating && chat.content && !chat.isLoading;
+                        const messageId = chat.messageId || chat.id || idx;
+                        const isRegenerating = regeneratingIndices.has(idx);
+                        
                         return (
-                            <div className={isUser ? "messageUser" : "messageAssistant"} key={chat.messageId || idx}>
+                            <div 
+                                className={isUser ? "messageUser" : `messageAssistant ${isRegenerating ? "regenerating" : ""}`} 
+                                key={messageId}
+                            >
                                 <div className="messageContent">
                                     <div className="messageAvatar">
                                         {isUser ? (
@@ -332,7 +384,7 @@ function Chat() {
                                                 </ReactMarkdown>
                                             )}
                                         </div>
-                                        {isAssistant && !chat.isLoading && (
+                                        {isAssistant && ((!chat.isLoading && !showStreaming) || isStreamingComplete) && (
                                             <div className="messageActions">
                                                 <div className="messageActionsInner messageActionsAssistant">
                                                     <button
