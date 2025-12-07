@@ -3,6 +3,7 @@ import Chat from "./Chat.jsx";
 import { MyContext } from "./MyContext.jsx";
 import { useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./context/AuthContext.jsx";
+import { useTheme } from "./context/ThemeContext.jsx";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import {ScaleLoader} from "react-spinners";
@@ -20,6 +21,7 @@ function ChatWindow() {
     } = useContext(MyContext);
     
     const { user, logout, loading: authLoading, isInitialized } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
     const [loading, setLoading] = useState(false);
@@ -1345,16 +1347,24 @@ function ChatWindow() {
                                                     Theme
                                                 </div>
                                                 <div className="settings-toggle-group">
-                                                    <button className="settings-toggle-btn active">
+                                                    <button 
+                                                        className={`settings-toggle-btn ${theme === 'dark' ? 'active' : ''}`}
+                                                        onClick={() => theme !== 'dark' && toggleTheme()}
+                                                    >
                                                         <i className="fa-solid fa-moon"></i> Dark
                                                     </button>
-                                                    <button className="settings-toggle-btn" disabled>
+                                                    <button 
+                                                        className={`settings-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+                                                        onClick={() => theme !== 'light' && toggleTheme()}
+                                                    >
                                                         <i className="fa-solid fa-sun"></i> Light
                                                     </button>
                                                 </div>
                                             </div>
                                             <div className="settings-item-description">
-                                                Currently using dark theme with Claude-inspired orange accents. Light mode coming soon!
+                                                {theme === 'dark' 
+                                                    ? 'Currently using dark theme with orange accents.'
+                                                    : 'Currently using light theme with clean white background and proper text contrast.'}
                                             </div>
                                         </div>
                                         <div className="settings-item">

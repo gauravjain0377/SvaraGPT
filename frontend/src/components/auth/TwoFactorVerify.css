@@ -47,17 +47,18 @@
 .twofa-code-input {
   width: 100%;
   padding: 12px;
-  font-size: 18px;
+  font-size: 20px;
   text-align: center;
-  letter-spacing: 8px;
-  border: 1px solid #555555;
-  border-radius: 4px;
-  background-color: #2a2a2a;
-  color: #ffffff;
+  letter-spacing: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
 }
 
 .twofa-code-input::placeholder {
-  color: #888888;
+  color: var(--text-tertiary);
+  opacity: 0.7;
 }
 
 .twofa-button-group {

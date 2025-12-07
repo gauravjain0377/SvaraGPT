@@ -89,6 +89,19 @@ function App() {
     }
   }, [location.pathname, params.chatId, params.projectId]);
 
+  // Auto-collapse sidebar on small screens to avoid overlap
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 950) {
+        setIsSidebarOpen(false);
+      }
+    };
+    // Run once on mount
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Handler for copying user message
   const handleCopyMessage = (chat) => {
     if (chat && chat.content) {

@@ -1,0 +1,45 @@
+/* CSS Variables for Theme Support */
+:root {
+  /* Dark Theme (Default) */
+  --bg-primary: #212121;
+  --bg-secondary: #171717;
+  --bg-tertiary: #2a2a2a;
+  --bg-hover: #333;
+  --text-primary: #ececec;
+  --text-secondary: #b4b4b4;
+  --text-tertiary: #666;
+  --border-color: #333;
+  --border-light: #404040;
+  --accent-color: #da7756;
+  --accent-hover: #c96647;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --overlay: rgba(0, 0, 0, 0.5);
+  --modal-bg: #2a2a2a;
+  --input-bg: #1a1a1a;
+  --card-bg: #2a2a2a;
+}
+
+[data-theme="light"] {
+  /* Light Theme */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f8f8;
+  --bg-tertiary: #f0f0f0;
+  --bg-hover: #e5e5e5;
+  --text-primary: #0a0a0a;
+  --text-secondary: #1a1a1a;
+  --text-tertiary: #333333;
+  --border-color: #d4d4d4;
+  --border-light: #e0e0e0;
+  --accent-color: #da7756;
+  --accent-hover: #c96647;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --overlay: rgba(0, 0, 0, 0.25);
+  --modal-bg: #ffffff;
+  --input-bg: #f5f5f5;
+  --card-bg: #ffffff;
+}
+
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+

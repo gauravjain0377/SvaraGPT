@@ -7,12 +7,14 @@ import Login from './components/auth/Login.jsx'
 import Register from './components/auth/Register.jsx'
 import ActiveSessions from './components/Settings/ActiveSessions.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/settings/sessions" element={<ActiveSessions />} />
@@ -30,7 +32,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/" element={<Navigate to="/chats" replace />} />
           <Route path="*" element={<Navigate to="/chats" replace />} />
         </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 )

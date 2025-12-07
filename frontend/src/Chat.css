@@ -11,7 +11,7 @@
     bottom: 32px;
     right: 32px;
     background: rgba(69, 214, 111, 0.95);
-    color: #000;
+    color: #0a0a0a;
     padding: 12px 20px;
     border-radius: 8px;
     display: flex;
@@ -19,7 +19,7 @@
     gap: 10px;
     font-size: 14px;
     font-weight: 600;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 24px var(--shadow);
     z-index: 10000;
     animation: toastSlideIn 0.3s ease-out, toastFadeOut 0.3s ease-in 1.7s forwards;
 }
@@ -80,19 +80,26 @@
     width: 72px;
     height: 72px;
     object-fit: contain;
+}
+
+[data-theme="dark"] .welcomeIcon img {
     filter: brightness(0) invert(1);
+}
+
+[data-theme="light"] .welcomeIcon img {
+    filter: none;
 }
 
 .welcomeTitle {
     font-size: 32px;
     font-weight: 600;
     margin-bottom: 12px;
-    color: #ececec;
+    color: var(--text-primary);
 }
 
 .welcomeSubtitle {
     font-size: 18px;
-    color: #b4b4b4;
+    color: var(--text-secondary);
     margin: 0;
 }
 
@@ -112,8 +119,8 @@
     justify-content: center;
     align-items: center;
     padding: 24px 28px;
-    background-color: #2a2a2a;
-    border: 1px solid #404040;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-light);
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -136,8 +143,8 @@
 }
 
 .promptCard:hover {
-    background-color: #333;
-    border-color: #ff6b35;
+    background-color: var(--bg-hover);
+    border-color: var(--accent-color);
     transform: translateY(-4px);
     box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
 }
@@ -148,7 +155,7 @@
 
 .promptCard span {
     font-size: 16px;
-    color: #ececec;
+    color: var(--text-primary);
     font-weight: 500;
     line-height: 1.4;
     flex: 1;
@@ -156,13 +163,13 @@
 }
 
 .promptCard i {
-    color: #b4b4b4;
+    color: var(--text-secondary);
     font-size: 18px;
     transition: color 0.3s ease;
 }
 
 .promptCard:hover i {
-    color: #ff6b35;
+    color: var(--accent-color);
 }
 
 .capabilities {
@@ -224,7 +231,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, #3a3a3a 20%, #3a3a3a 80%, transparent);
+    background: linear-gradient(90deg, transparent, var(--border-light) 20%, var(--border-light) 80%, transparent);
     z-index: 0;
     pointer-events: none;
 }
@@ -310,7 +317,7 @@
 }
 
 .userMessageBox {
-    background-color: #2a2a2a;
+    background-color: var(--card-bg);
     padding: 14px 18px;
     border-radius: 18px;
     border-top-right-radius: 4px;
@@ -321,13 +328,13 @@
 }
 
 .userMessageBox:hover {
-    background-color: #323232;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 20px rgba(0, 0, 0, 0.35);
+    background-color: var(--bg-hover);
+    box-shadow: 0 0 0 1px var(--border-light), 0 8px 20px var(--shadow);
 }
 
 .userMessageBox p {
     margin: 0;
-    color: #ececec;
+    color: var(--text-primary);
     line-height: 1.5;
     font-weight: 500;
 }
@@ -360,7 +367,7 @@
 
 .messageAssistant .messageText p,
 .messageAssistant .messageText div {
-    color: #e0e0e0;
+    color: var(--text-primary);
     line-height: 1.7;
     font-size: 15px;
     -webkit-font-smoothing: antialiased;
@@ -372,7 +379,8 @@
 
 .hljs {
     border-radius: 8px !important;
-    background-color: #1a1a1a !important;
+    background-color: var(--card-bg) !important;
+    color: var(--text-primary) !important;
 }
 
 pre {
@@ -409,10 +417,10 @@ code {
     align-items: center;
     gap: 6px;
     padding: 8px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
     border-radius: 8px;
-    color: #ececec;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -430,9 +438,9 @@ code {
 .messageActionBtn:hover,
 .messageActionIcon:hover {
     transform: translateY(-1px);
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: var(--bg-hover);
+    border-color: var(--border-light);
+    box-shadow: 0 4px 12px var(--shadow);
 }
 
 .messageActionBtn i,
@@ -448,6 +456,17 @@ code {
 .messageActionsAssistant {
     flex-wrap: wrap;
     gap: 8px;
+}
+
+/* Light theme fixes */
+/* Prevent inverted assistant avatar in light mode */
+[data-theme="light"] .assistantAvatar img {
+    filter: none;
+}
+
+/* Ensure assistant avatar background is light in light mode */
+[data-theme="light"] .assistantAvatar {
+    background: var(--bg-tertiary);
 }
 
 .feedbackGroup {
@@ -479,8 +498,8 @@ code {
 .messageEditWrapper {
     display: flex;
     align-items: flex-end;
-    background-color: #2a2a2a;
-    border: 1px solid #ff6b35;
+    background-color: var(--card-bg);
+    border: 1px solid var(--accent-color);
     border-radius: 24px;
     padding: 8px 8px 8px 20px;
     transition: border-color 0.2s;
@@ -491,15 +510,15 @@ code {
 }
 
 .messageEditWrapper:focus-within {
-    border-color: #ff6b35;
-    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(218, 119, 86, 0.2);
 }
 
 .messageEditInput {
     flex: 1;
     border: none;
     background: transparent;
-    color: #ececec;
+    color: var(--text-primary);
     font-size: 16px;
     line-height: 24px;
     padding: 8px 12px;
@@ -512,7 +531,7 @@ code {
 }
 
 .messageEditInput::placeholder {
-    color: #666;
+    color: var(--text-tertiary);
 }
 
 .editActions {
