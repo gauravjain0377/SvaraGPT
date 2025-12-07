@@ -2339,26 +2339,49 @@
     .settings-sidebar {
         width: 100%;
         border-right: none;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid var(--border-color);
         padding: 0;
         display: flex;
         overflow-x: auto;
         overflow-y: hidden;
+        background: var(--bg-secondary);
+        /* Better scrolling on mobile */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+    }
+    
+    .settings-sidebar::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
     
     .settings-tab {
-        padding: 12px 16px;
-        min-width: 100px;
+        padding: 14px 20px;
+        min-width: 110px;
         white-space: nowrap;
         border-left: none;
         border-bottom: 3px solid transparent;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .settings-tab:hover {
+        background: var(--bg-hover);
     }
     
     .settings-tab.active {
         border-left: none;
-        border-bottom-color: #da7756;
-        background: rgba(218, 119, 86, 0.1);
+        border-bottom-color: var(--accent-color);
+        background: rgba(218, 119, 86, 0.15);
+        color: var(--accent-color);
+    }
+    
+    .settings-tab.active i {
+        color: var(--accent-color);
     }
     
     .settings-content {
@@ -2468,9 +2491,9 @@
     }
     
     .settings-tab {
-        padding: 10px 12px;
+        padding: 12px 16px;
         font-size: 13px;
-        min-width: 80px;
+        min-width: 90px;
     }
     
     .settings-content {

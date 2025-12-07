@@ -140,6 +140,7 @@
     background: linear-gradient(135deg, #ff6b35, #f7931e);
     transform: scaleY(0);
     transition: transform 0.3s ease;
+    opacity: 0;
 }
 
 .promptCard:hover {
@@ -150,6 +151,7 @@
 
 .promptCard:hover::before {
     transform: scaleY(1);
+    opacity: 1;
 }
 
 .promptCard span {
@@ -727,5 +729,21 @@ code {
         word-break: break-word;
         overflow-wrap: anywhere;
         hyphens: auto;
+    }
+    
+    /* Fix prompt cards on mobile - hide decorative gradient line */
+    .promptCard::before {
+        display: none;
+    }
+    
+    .suggestedPrompts {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 60px;
+    }
+    
+    .promptCard {
+        padding: 20px;
+        min-height: 60px;
     }
 }

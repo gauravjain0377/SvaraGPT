@@ -49,6 +49,18 @@
     .sidebar-close-btn {
         display: flex;
     }
+    
+    /* Add right padding to header to prevent overlap with close button */
+    /* Calculation: right position (16px) + button width (36px) + extra safe gap (24px) = 76px */
+    .sidebarHeader {
+        padding: 16px 76px 16px 16px;
+    }
+    
+    /* Reduce button padding slightly on smaller widths */
+    .newChatBtn {
+        padding: 12px 14px;
+        gap: 10px;
+    }
 }
 
 .sidebar-close-btn:hover {
@@ -67,11 +79,14 @@
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: space-between; /* Ensure space between items */
     gap: 8px;
+    box-sizing: border-box;
 }
 
 .newChatBtn {
-    width: 100%;
+    flex-grow: 1; /* Allow button to grow */
+    min-width: 0; /* Prevent overflow */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -87,6 +102,10 @@
     transition: all 0.3s ease;
     text-shadow: none;
     box-shadow: 0 3px 15px var(--shadow);
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .newChatBtn:hover {
@@ -111,6 +130,9 @@
     color: #ffffff !important;
     font-weight: 600;
     text-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Navigation Tabs */
@@ -186,7 +208,6 @@
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
-    group: thread;
 }
 
 .threadItem:hover {
@@ -903,31 +924,75 @@
     }
 }
 
+@media (max-width: 1000px) {
+    .sidebarHeader {
+        padding: 15px 74px 15px 15px;
+    }
+    
+    .newChatBtn {
+        padding: 11px 13px;
+        gap: 9px;
+    }
+}
+
+@media (max-width: 800px) {
+    .sidebarHeader {
+        padding: 14px 72px 14px 14px;
+    }
+    
+    .sidebar-close-btn {
+        top: 14px;
+        right: 14px;
+        width: 32px;
+        height: 32px;
+    }
+    
+    .newChatBtn {
+        padding: 11px 12px;
+        gap: 8px;
+        font-size: 13px;
+    }
+    
+    .newChatBtn span {
+        font-size: 13px;
+    }
+    
+    .newChatBtn i {
+        font-size: 15px;
+    }
+}
+
 @media (max-width: 480px) {
     .sidebar {
         width: 100%;
         max-width: 320px;
     }
     
+    /* Calculation: right position (12px) + button width (30px) + extra safe gap (24px) = 66px */
     .sidebarHeader {
-        padding: 10px 44px 10px 10px;
+        padding: 12px 66px 12px 12px;
     }
     
     .sidebar-close-btn {
-        top: 10px;
-        right: 10px;
-        width: 28px;
-        height: 28px;
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+    }
+    
+    .sidebar-close-btn i {
+        font-size: 16px;
     }
     
     .newChatBtn {
-        padding: 8px 12px;
-        font-size: 12px;
+        padding: 10px 12px;
+        font-size: 13px;
         flex: 1;
+        gap: 7px;
     }
     
     .newChatBtn span {
-        font-size: 12px;
+        font-size: 13px;
     }
     
     .newChatBtn i {
@@ -946,5 +1011,37 @@
     
     .threadTitle {
         font-size: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    /* Calculation: right position (10px) + button width (28px) + extra safe gap (24px) = 62px */
+    .sidebarHeader {
+        padding: 10px 62px 10px 10px;
+    }
+    
+    .sidebar-close-btn {
+        top: 10px;
+        right: 10px;
+        width: 28px;
+        height: 28px;
+    }
+    
+    .sidebar-close-btn i {
+        font-size: 14px;
+    }
+    
+    .newChatBtn {
+        padding: 9px 10px;
+        font-size: 12px;
+        gap: 6px;
+    }
+    
+    .newChatBtn span {
+        font-size: 12px;
+    }
+    
+    .newChatBtn i {
+        font-size: 13px;
     }
 }
