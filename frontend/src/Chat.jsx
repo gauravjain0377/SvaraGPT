@@ -26,15 +26,12 @@ function Chat() {
         handleRegenerate,
         handleFeedbackToggle,
         activeFeedback,
-        shareThread,
         isGenerating,
         setIsTyping
     } = useContext(MyContext);
     const { user } = useAuth();
     const [latestReply, setLatestReply] = useState(null);
     const [showCopyToast, setShowCopyToast] = useState(false);
-    const [showShareModal, setShowShareModal] = useState(false);
-    const [shareData, setShareData] = useState(null);
     const [editingMessage, setEditingMessage] = useState(null);
     const [regeneratingIndices, setRegeneratingIndices] = useState(new Set());
     const editTextareaRef = useRef(null);
@@ -120,28 +117,6 @@ function Chat() {
         }
     };
 
-    // Handler for sharing thread
-    const handleShareThread = async () => {
-        try {
-            const response = await fetch(apiUrl('/api/share'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ threadId: currThreadId })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                setShareData(data);
-                setShowShareModal(true);
-            } else {
-                console.error('Error sharing thread:', data.error);
-            }
-        } catch (error) {
-            console.error('Error sharing thread:', error);
-        }
-    };
 
     // Handle when reply is cleared (generation stopped)
     useEffect(() => {
@@ -458,15 +433,6 @@ function Chat() {
                                                             <span>Bad</span>
                                                         </button>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        className="messageActionBtn"
-                                                        onClick={handleShareThread}
-                                                        aria-label="Share thread"
-                                                    >
-                                                        <i className="fa-solid fa-share-nodes"></i>
-                                                        <span>Share</span>
-                                                    </button>
                                                 </div>
                                             </div>
                                         )}
@@ -476,60 +442,6 @@ function Chat() {
                             </div>
                         );
                     })}
-                </div>
-            )}
-            
-            {/* Share Modal */}
-            {showShareModal && (
-                <div className="share-modal-backdrop" onClick={() => setShowShareModal(false)}>
-                    <div className="share-modal-container" onClick={(e) => e.stopPropagation()}>
-                        <div className="share-modal-header">
-                            <h2 className="share-modal-title">
-                                <i className="fa-solid fa-share-nodes"></i>
-                                Share Conversation
-                            </h2>
-                            <button className="share-modal-close" onClick={() => setShowShareModal(false)}>
-                                <i className="fa-solid fa-times"></i>
-                            </button>
-                        </div>
-                        
-                        <div className="share-modal-body">
-                            {shareData ? (
-                                <>
-                                    <p className="share-description">
-                                        Share this link with others to let them view this conversation:
-                                    </p>
-                                    <div className="share-link-container">
-                                        <input 
-                                            type="text" 
-                                            className="share-link-input" 
-                                            value={`${window.location.origin}/shared/${shareData.shareId}`} 
-                                            readOnly 
-                                        />
-                                        <button 
-                                            className="share-link-copy" 
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(`${window.location.origin}/shared/${shareData.shareId}`);
-                                                setShowCopyToast(true);
-                                                setTimeout(() => setShowCopyToast(false), 2000);
-                                            }}
-                                        >
-                                            <i className="fa-solid fa-copy"></i>
-                                            Copy
-                                        </button>
-                                    </div>
-                                    <div className="share-options">
-                                        <p className="share-expiry">
-                                            <i className="fa-solid fa-clock"></i>
-                                            This link will expire in 7 days
-                                        </p>
-                                    </div>
-                                </>
-                            ) : (
-                                <p className="share-loading">Generating share link...</p>
-                            )}
-                        </div>
-                    </div>
                 </div>
             )}
         </div>

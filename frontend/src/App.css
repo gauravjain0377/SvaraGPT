@@ -25,32 +25,34 @@ body {
     position: relative;
 }
 
+/* Mobile Overlay */
+.sidebar-overlay {
+    display: none;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .app {
-        flex-direction: column;
+        position: relative;
     }
     
-    .sidebar {
-        width: 100% !important;
-        height: auto !important;
-        max-height: 200px;
-        position: relative;
-        border-right: none !important;
-        border-bottom: 1px solid #333;
-        overflow-y: auto;
+    .sidebar-overlay {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        backdrop-filter: blur(2px);
     }
     
     .chatWindow {
         width: 100% !important;
         margin-left: 0 !important;
-        height: calc(100vh - 200px);
     }
     
-    .header {
-        width: 100%;
-    }
-}
     .mainContent {
         padding: 0 16px !important;
     }

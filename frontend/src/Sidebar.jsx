@@ -37,6 +37,8 @@ function Sidebar() {
     setActiveDropdown,
     activeSection,
     setActiveSection,
+    isSidebarOpen,
+    setIsSidebarOpen,
   } = useContext(MyContext);
 
   const { user, loading, isInitialized } = useAuth();
@@ -235,6 +237,11 @@ function Sidebar() {
     // Update URL to reflect new chat
     window.history.pushState({}, "", "/chats");
     setActiveSection("chats");
+    
+    // Close sidebar on mobile after creating new chat
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const changeThread = async (newThreadId, projectId = null) => {
@@ -612,7 +619,16 @@ function Sidebar() {
   }, [activeDropdown, showProjectMenu]);
 
   return (
-    <section className="sidebar">
+    <section className={`sidebar ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      {/* Mobile Close Button */}
+      <button 
+        className="sidebar-close-btn"
+        onClick={() => setIsSidebarOpen(false)}
+        aria-label="Close sidebar"
+      >
+        <i className="fa-solid fa-times"></i>
+      </button>
+      
       {/* Header */}
       <div className="sidebarHeader">
         <button className="newChatBtn" onClick={() => createNewChat()}>
@@ -628,6 +644,10 @@ function Sidebar() {
           onClick={() => {
             setActiveSection("chats");
             window.history.pushState({}, "", "/chats");
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth <= 768) {
+              setIsSidebarOpen(false);
+            }
           }}
         >
           <i className="fa-solid fa-comment"></i>
@@ -638,6 +658,10 @@ function Sidebar() {
           onClick={() => {
             setActiveSection("projects");
             window.history.pushState({}, "", "/projects");
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth <= 768) {
+              setIsSidebarOpen(false);
+            }
           }}
         >
           <i className="fa-solid fa-folder"></i>
@@ -659,7 +683,13 @@ function Sidebar() {
                   className={`threadItem ${
                     thread.threadId === currThreadId ? "active" : ""
                   }`}
-                  onClick={(e) => changeThread(thread.threadId)}
+                  onClick={(e) => {
+                    changeThread(thread.threadId);
+                    // Close sidebar on mobile after selecting thread
+                    if (window.innerWidth <= 768) {
+                      setIsSidebarOpen(false);
+                    }
+                  }}
                 >
                   <div className="threadContent">
                     <span className="threadTitle">{thread.title}</span>
@@ -844,7 +874,13 @@ function Sidebar() {
                           className={`threadItem ${
                             chat.threadId === currThreadId ? "active" : ""
                           }`}
-                          onClick={() => changeThread(chat.threadId, project.id)}
+                          onClick={() => {
+                            changeThread(chat.threadId, project.id);
+                            // Close sidebar on mobile after selecting thread
+                            if (window.innerWidth <= 768) {
+                              setIsSidebarOpen(false);
+                            }
+                          }}
                         >
                           <div className="threadContent">
                             <span className="threadTitle">{chat.title}</span>

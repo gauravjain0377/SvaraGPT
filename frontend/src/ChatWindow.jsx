@@ -12,14 +12,13 @@ import { apiUrl } from "./utils/apiConfig";
 function ChatWindow() {
     // We'll provide these handler functions through context
     const [activeFeedback, setActiveFeedback] = useState({});
-    const [showShareModal, setShowShareModal] = useState(false);
-    const [shareData, setShareData] = useState(null);
     
     const {
         prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat,
         currentProject, setCurrentProject, projects, setProjects, allThreads, setAllThreads, prevChats,
-        isGenerating, setIsGenerating, isTyping
+        isGenerating, setIsGenerating, isTyping, isSidebarOpen, setIsSidebarOpen
     } = useContext(MyContext);
+    
     const { user, logout, loading: authLoading, isInitialized } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -55,10 +54,10 @@ function ChatWindow() {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [copyToast, setCopyToast] = useState(false);
     const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
     const [viewedBackupCodes, setViewedBackupCodes] = useState([]);
     const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+    const [showMobileMenu, setShowMobileMenu] = useState(false); // Mobile three dots menu
     
     // AbortController for stopping generation
     const abortControllerRef = useRef(null);
@@ -67,7 +66,20 @@ function ChatWindow() {
     // Close dropdown when user state changes
     useEffect(() => {
         setIsOpen(false);
+        setShowMobileMenu(false);
     }, [user]);
+    
+    // Close mobile menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showMobileMenu && !event.target.closest('.mobile-menu-dots') && !event.target.closest('.mobile-menu-dropdown')) {
+                setShowMobileMenu(false);
+            }
+        };
+        
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showMobileMenu]);
 
     // Reset textarea height when prompt is cleared
     useEffect(() => {
@@ -179,28 +191,6 @@ function ChatWindow() {
         }
     };
 
-    // Handler for sharing thread
-    const shareThread = async (chat) => {
-        try {
-            const response = await fetch(apiUrl('/api/share'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ threadId: currThreadId })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                setShareData(data);
-                setShowShareModal(true);
-            } else {
-                console.error('Error sharing thread:', data.error);
-            }
-        } catch (error) {
-            console.error('Error sharing thread:', error);
-        }
-    };
 
     // Get user initials for avatar
     const getUserInitials = () => {
@@ -1041,10 +1031,68 @@ function ChatWindow() {
             <div className="header">
                 <div className="headerContent">
                     <div className="brandSection">
+                        {/* Mobile Menu Button */}
+                        <button 
+                            className="mobile-menu-btn"
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            aria-label="Toggle menu"
+                        >
+                            <i className="fa-solid fa-bars"></i>
+                        </button>
                         <img src={logo3} alt="SvaraGPT Logo" className="brandIcon" />
                         <span className="brandName">SvaraGPT</span>
                     </div>
                     <div className="headerActions">
+                        {/* Mobile Three Dots Menu Button */}
+                        <button 
+                            className="mobile-menu-dots"
+                            onClick={() => setShowMobileMenu(!showMobileMenu)}
+                            aria-label="More options"
+                        >
+                            <i className="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        
+                        {/* Mobile Menu Dropdown */}
+                        {showMobileMenu && (
+                            <>
+                                <div 
+                                    className="mobile-menu-overlay"
+                                    onClick={() => setShowMobileMenu(false)}
+                                ></div>
+                                <div className="mobile-menu-dropdown">
+                                    {user ? (
+                                        <>
+                                            <div className="mobile-menu-item" onClick={() => {
+                                                setShowMobileMenu(false);
+                                                handleSettingsClick();
+                                            }}>
+                                                <i className="fa-solid fa-gear"></i>
+                                                <span>Settings</span>
+                                            </div>
+                                            <div className="mobile-menu-item" onClick={() => {
+                                                setShowMobileMenu(false);
+                                                handleLogoutClick();
+                                            }}>
+                                                <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                                                <span>Log out</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        !authLoading && isInitialized && (
+                                            <div className="mobile-menu-item" onClick={() => {
+                                                setShowMobileMenu(false);
+                                                navigate('/login');
+                                            }}>
+                                                <i className="fa-solid fa-right-to-bracket"></i>
+                                                <span>Log in</span>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                            </>
+                        )}
+                        {/* Desktop User Profile */}
+                        <div className="desktop-user-profile">
                         {user ? (
                             <div 
                                 className="userProfile" 
@@ -1085,6 +1133,7 @@ function ChatWindow() {
                                 </button>
                             )
                         )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2248,66 +2297,6 @@ Keep these codes safe. Each code can only be used once.`],
                             )}
                         </div>
                     </div>
-                </div>
-            )}
-            {/* Share Modal */}
-            {showShareModal && (
-                <div className="share-modal-backdrop" onClick={() => setShowShareModal(false)}>
-                    <div className="share-modal-container" onClick={(e) => e.stopPropagation()}>
-                        <div className="share-modal-header">
-                            <h2 className="share-modal-title">
-                                <i className="fa-solid fa-share-nodes"></i>
-                                Share Conversation
-                            </h2>
-                            <button className="share-modal-close" onClick={() => setShowShareModal(false)}>
-                                <i className="fa-solid fa-times"></i>
-                            </button>
-                        </div>
-                        
-                        <div className="share-modal-body">
-                            {shareData ? (
-                                <>
-                                    <p className="share-description">
-                                        Share this link with others to let them view this conversation:
-                                    </p>
-                                    <div className="share-link-container">
-                                        <input 
-                                            type="text" 
-                                            className="share-link-input" 
-                                            value={`${window.location.origin}/shared/${shareData.shareId}`} 
-                                            readOnly 
-                                        />
-                                        <button 
-                                            className="share-link-copy" 
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(`${window.location.origin}/shared/${shareData.shareId}`);
-                                                alert('Link copied to clipboard!');
-                                            }}
-                                        >
-                                            <i className="fa-solid fa-copy"></i>
-                                            Copy
-                                        </button>
-                                    </div>
-                                    <div className="share-options">
-                                        <p className="share-expiry">
-                                            <i className="fa-solid fa-clock"></i>
-                                            This link will expire in 7 days
-                                        </p>
-                                    </div>
-                                </>
-                            ) : (
-                                <p className="share-loading">Generating share link...</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-            
-            {/* Copy Toast Notification */}
-            {copyToast && (
-                <div className="copy-toast">
-                    <i className="fa-solid fa-check-circle"></i>
-                    Copied to clipboard!
                 </div>
             )}
         </div>

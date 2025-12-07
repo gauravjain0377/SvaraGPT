@@ -12,12 +12,65 @@
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 1000;
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Mobile Close Button */
+.sidebar-close-btn {
+    display: none;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #2a2a2a;
+    color: #ececec;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1001;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+/* Mobile Close Button */
+.sidebar-close-btn {
+    display: none;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #2a2a2a;
+    color: #ececec;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1001;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.sidebar-close-btn:hover {
+    background: #404040;
+    transform: scale(1.05);
+}
+
+.sidebar-close-btn i {
+    font-size: 18px;
 }
 
 /* Header */
 .sidebarHeader {
     padding: 16px;
     border-bottom: 1px solid #2a2a2a;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .newChatBtn {
@@ -742,4 +795,121 @@
 
 .logoutBtn i {
     font-size: 16px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 280px;
+        transform: translateX(-100%);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+    
+    .sidebar-close-btn {
+        display: flex;
+    }
+    
+    .sidebarHeader {
+        padding: 12px 48px 12px 12px;
+        flex-wrap: nowrap;
+    }
+    
+    .newChatBtn {
+        padding: 10px 14px;
+        font-size: 13px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .newChatBtn span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .navTabs {
+        padding: 6px 12px;
+    }
+    
+    .navTab {
+        padding: 6px 10px;
+        font-size: 10px;
+        min-width: 50px;
+    }
+    
+    .navTab i {
+        font-size: 14px;
+    }
+    
+    .threadTitle {
+        font-size: 13px;
+    }
+    
+    .userProfile {
+        padding: 12px;
+    }
+    
+    .userAvatar {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    .userName {
+        font-size: 13px;
+    }
+    
+    .userEmail {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 100%;
+        max-width: 320px;
+    }
+    
+    .sidebarHeader {
+        padding: 10px 44px 10px 10px;
+    }
+    
+    .sidebar-close-btn {
+        top: 10px;
+        right: 10px;
+        width: 28px;
+        height: 28px;
+    }
+    
+    .newChatBtn {
+        padding: 8px 12px;
+        font-size: 12px;
+        flex: 1;
+    }
+    
+    .newChatBtn span {
+        font-size: 12px;
+    }
+    
+    .newChatBtn i {
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    
+    .navTab {
+        padding: 5px 8px;
+        font-size: 9px;
+    }
+    
+    .threadItem {
+        padding: 6px;
+    }
+    
+    .threadTitle {
+        font-size: 12px;
+    }
 }

@@ -52,6 +52,7 @@ function App() {
   const [activeFeedback, setActiveFeedback] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
 
   // Clear projects when user logs out
   useEffect(() => {
@@ -163,27 +164,6 @@ function App() {
     }
   };
 
-  // Handler for sharing thread
-  const shareThread = async () => {
-    try {
-      const response = await fetch(`/api/share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ threadId: currThreadId })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        alert(`Thread shared! Share link: ${window.location.origin}/shared/${data.shareId}`);
-      } else {
-        console.error('Error sharing thread');
-      }
-    } catch (error) {
-      console.error('Error sharing thread:', error);
-    }
-  };
-
   const providerValues = {    // passing values
     prompt, setPrompt,
     reply, setReply,
@@ -213,6 +193,9 @@ function App() {
     isGenerating, setIsGenerating,
     isTyping, setIsTyping,
     
+    // Mobile menu state
+    isSidebarOpen, setIsSidebarOpen,
+    
     // Chat button handlers
     handleCopyMessage,
     handleEditMessage,
@@ -220,13 +203,19 @@ function App() {
     handleCopyAssistant,
     handleRegenerate,
     handleFeedbackToggle,
-    activeFeedback,
-    shareThread
+    activeFeedback
   };
 
   return (
     <div className='app'>
       <MyContext.Provider value={providerValues}>
+          {/* Mobile overlay to close sidebar when clicking outside */}
+          {isSidebarOpen && (
+            <div 
+              className="sidebar-overlay" 
+              onClick={() => setIsSidebarOpen(false)}
+            ></div>
+          )}
           <Sidebar></Sidebar>
           <ChatWindow></ChatWindow>
         </MyContext.Provider>

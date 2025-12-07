@@ -10,7 +10,6 @@ import projectRoutes from "./routes/project.js";
 import authRoutes from "./routes/auth.js";
 import migrateRoutes from "./routes/migrate.js";
 import contactRoutes from "./routes/contact.js";
-import shareRoutes from "./routes/share.js";
 import passportConfig from "./config/passport.js";
 
 // Set NODE_ENV to 'production' if not set
@@ -116,7 +115,6 @@ app.use("/api", chatRoutes);
 app.use("/api", projectRoutes);
 app.use("/api/migrate", migrateRoutes);
 app.use("/api", contactRoutes);
-app.use("/api", shareRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
