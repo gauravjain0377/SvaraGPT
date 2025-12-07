@@ -174,27 +174,19 @@ function Chat() {
     const suggestedPrompts = [
         {
             title: "Help me write a Java function.",
-            subtitle: "Get help with Java programming",
-            icon: "fa-code",
-            color: "linear-gradient(135deg, #667eea, #764ba2)"
+
         },
         {
             title: "Explain quantum computing",
-            subtitle: "Learn about quantum mechanics",
-            icon: "fa-atom",
-            color: "linear-gradient(135deg, #f093fb, #f5576c)"
+
         },
         {
             title: "Create a marketing strategy",
-            subtitle: "Plan your marketing approach",
-            icon: "fa-bullhorn",
-            color: "linear-gradient(135deg, #4facfe, #00f2fe)"
+
         },
         {
             title: "Debug my JavaScript code",
-            subtitle: "Find and fix code issues",
-            icon: "fa-bug",
-            color: "linear-gradient(135deg, #43e97b, #38f9d7)"
+
         }
     ];
 

@@ -165,23 +165,6 @@
     color: #ff6b35;
 }
 
-/* Prompt Card Icon and Text Structure */
-.promptCardIcon {
-    display: none; /* Hidden on desktop, shown on mobile */
-}
-
-.promptCardTexts {
-    display: none; /* Hidden on desktop, shown on mobile */
-}
-
-.promptCardTitle {
-    display: block;
-}
-
-.promptCardSubtitle {
-    display: none; /* Hidden on desktop, shown on mobile */
-}
-
 .capabilities {
     display: flex;
     justify-content: center;
@@ -631,80 +614,6 @@ code {
 
 /* Responsive design for chat messages */
 @media (max-width: 768px) {
-    .welcomeScreen {
-        padding: 20px 16px;
-    }
-    
-    .welcomeContent {
-        max-width: 100%;
-    }
-    
-    .welcomeHeader {
-        margin-bottom: 32px;
-    }
-    
-    .welcomeIcon img {
-        width: 56px;
-        height: 56px;
-    }
-    
-    .welcomeTitle {
-        font-size: 24px;
-    }
-    
-    .welcomeSubtitle {
-        font-size: 16px;
-    }
-    
-    .suggestedPrompts {
-        grid-template-columns: 1fr;
-        gap: 12px;
-        margin-top: 16px;
-        margin-bottom: 60px;
-    }
-    
-    .promptCard {
-        padding: 16px 20px;
-        min-height: 70px;
-        flex-direction: row;
-        text-align: left;
-        gap: 12px;
-    }
-    
-    .promptCardIcon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    
-    .promptCardIcon i {
-        font-size: 18px;
-        color: white;
-    }
-    
-    .promptCardTexts {
-        display: flex !important;
-        flex-direction: column;
-        gap: 4px;
-        flex: 1;
-    }
-    
-    .promptCardTitle {
-        font-size: 14px;
-        font-weight: 600;
-        color: #ececec;
-    }
-    
-    .promptCardSubtitle {
-        font-size: 12px;
-        color: #b4b4b4;
-        display: block !important;
-    }
-    
     .chats {
         padding: 16px;
         padding-bottom: 80px;
@@ -727,62 +636,9 @@ code {
     .messageAssistant:last-child {
         margin-bottom: 50px;
     }
-    
-    .messageEditContainerFull {
-        padding: 0 16px;
-    }
 }
 
 @media (max-width: 480px) {
-    .welcomeScreen {
-        padding: 16px 12px;
-    }
-    
-    .welcomeHeader {
-        margin-bottom: 24px;
-    }
-    
-    .welcomeIcon img {
-        width: 48px;
-        height: 48px;
-    }
-    
-    .welcomeTitle {
-        font-size: 20px;
-    }
-    
-    .welcomeSubtitle {
-        font-size: 14px;
-    }
-    
-    .suggestedPrompts {
-        gap: 10px;
-        margin-top: 12px;
-        margin-bottom: 50px;
-    }
-    
-    .promptCard {
-        padding: 14px 16px;
-        min-height: 60px;
-    }
-    
-    .promptCardIcon {
-        width: 36px;
-        height: 36px;
-    }
-    
-    .promptCardIcon i {
-        font-size: 16px;
-    }
-    
-    .promptCardTitle {
-        font-size: 13px;
-    }
-    
-    .promptCardSubtitle {
-        font-size: 11px;
-    }
-    
     .chats {
         padding: 12px;
         padding-bottom: 80px;
@@ -800,16 +656,5 @@ code {
     .messageUser:last-child,
     .messageAssistant:last-child {
         margin-bottom: 40px;
-    }
-    
-    .messageEditContainerFull {
-        padding: 0 12px;
-    }
-    
-    .copyToast {
-        bottom: 20px;
-        right: 20px;
-        padding: 10px 16px;
-        font-size: 13px;
     }
 }

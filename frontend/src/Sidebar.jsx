@@ -644,7 +644,10 @@ function Sidebar() {
           onClick={() => {
             setActiveSection("chats");
             window.history.pushState({}, "", "/chats");
-            // Don't close sidebar when switching tabs - only close on X button or when clicking a chat/project
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth <= 768) {
+              setIsSidebarOpen(false);
+            }
           }}
         >
           <i className="fa-solid fa-comment"></i>
@@ -655,7 +658,10 @@ function Sidebar() {
           onClick={() => {
             setActiveSection("projects");
             window.history.pushState({}, "", "/projects");
-            // Don't close sidebar when switching tabs - only close on X button or when clicking a chat/project
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth <= 768) {
+              setIsSidebarOpen(false);
+            }
           }}
         >
           <i className="fa-solid fa-folder"></i>

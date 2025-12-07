@@ -2275,26 +2275,6 @@
     .mainContent {
         margin-top: 60px;
         padding: 0 16px;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    
-    .chatWindow {
-        width: 100%;
-        margin-left: 0;
-    }
-    
-    /* Ensure mobile menu is visible and properly positioned */
-    .mobile-menu-dropdown {
-        position: fixed;
-        top: 60px;
-        right: 16px;
-        z-index: 999;
-    }
-    
-    /* Ensure login button is visible on mobile when not logged in */
-    .mobile-menu-item {
-        white-space: nowrap;
     }
 }
 

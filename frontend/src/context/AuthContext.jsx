@@ -97,26 +97,15 @@ export const AuthProvider = ({ children }) => {
         // Also check on focus
         window.addEventListener('focus', checkAuth);
         
-        // Check auth after a short delay to handle OAuth redirects
-        const timeoutId = setTimeout(() => {
-            checkAuth();
-        }, 500);
-        
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('focus', checkAuth);
-            clearTimeout(timeoutId);
         };
     }, []);
 
-    // Re-check auth when route changes (especially after OAuth redirects)
+    // Re-check auth when route changes
     useEffect(() => {
-        // Add a small delay for OAuth redirects to complete
-        const timeoutId = setTimeout(() => {
-            checkAuth();
-        }, 100);
-        
-        return () => clearTimeout(timeoutId);
+        checkAuth();
     }, [location.pathname]);
 
     const login = async (email, password) => {
