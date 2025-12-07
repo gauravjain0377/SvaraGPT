@@ -304,11 +304,25 @@ function ChatWindow() {
                     // Remove the loading message
                     setPrevChats(prevState => prevState.filter(chat => !(chat.role === "assistant" && chat.isLoading)));
                     setLoading(false);
+                    setIsGenerating(false);
                     return;
                 }
             }
             
+            // Check if response is OK before parsing
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                console.error("Chat API error:", errorData);
+                throw new Error(errorData.error || errorData.details || `Request failed with status ${response.status}`);
+            }
+            
             const res = await response.json();
+            
+            if (!res.reply) {
+                console.error("No reply in response:", res);
+                throw new Error("No reply received from server");
+            }
+            
             setReply(res.reply);
 
             // 5) Replace the temporary loader message with the real reply
@@ -344,13 +358,18 @@ function ChatWindow() {
                 // Don't remove the loading message - let Chat component preserve partial content
                 // The Chat component's useEffect will handle updating the message with latestReply
             } else {
-                console.log(err);
+                console.error("Chat API error:", err);
+                const errorMessage = err.message || "Sorry, something went wrong. Please try again.";
                 // Replace loader with an error message
                 setPrevChats(prev => {
                     const updated = [...prev];
                     for (let i = updated.length - 1; i >= 0; i--) {
                         if (updated[i].role === "assistant" && updated[i].isLoading) {
-                            updated[i] = { role: "assistant", content: "Sorry, something went wrong. Please try again." };
+                            updated[i] = { 
+                                role: "assistant", 
+                                content: `Error: ${errorMessage}`,
+                                isError: true
+                            };
                             break;
                         }
                     }
@@ -431,7 +450,19 @@ function ChatWindow() {
                 }
             }
             
+            // Check if response is OK before parsing
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                console.error("Regenerate API error:", errorData);
+                throw new Error(errorData.error || errorData.details || `Request failed with status ${response.status}`);
+            }
+            
             const res = await response.json();
+            
+            if (!res.reply) {
+                console.error("No reply in response:", res);
+                throw new Error("No reply received from server");
+            }
             
             // Update only the assistant message after the user message, keep all subsequent messages
             setPrevChats(prev => {
@@ -466,11 +497,16 @@ function ChatWindow() {
                     return updated;
                 });
             } else {
-                console.log(err);
+                console.error("Regenerate API error:", err);
+                const errorMessage = err.message || "Sorry, something went wrong. Please try again.";
                 // Update with error message, keep all subsequent messages
                 setPrevChats(prev => {
                     const updated = [...prev];
-                    updated[regenerateIndex + 1] = { role: "assistant", content: "Sorry, something went wrong. Please try again." };
+                    updated[regenerateIndex + 1] = { 
+                        role: "assistant", 
+                        content: `Error: ${errorMessage}`,
+                        isError: true
+                    };
                     return updated;
                 });
             }

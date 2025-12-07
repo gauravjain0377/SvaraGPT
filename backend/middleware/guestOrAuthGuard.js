@@ -40,12 +40,14 @@ export async function guestOrAuthGuard(req, res, next) {
         // Generate new guest ID
         guestId = `guest_${uuidv4()}`;
         // Set cookie that expires in 30 days
+        const isProduction = process.env.NODE_ENV === 'production';
         res.cookie('svara_guest_id', guestId, {
             httpOnly: true,
-            secure: true, // required for cross-site cookies
-            sameSite: 'none', // allow cross-site between Vercel and Render
+            secure: process.env.COOKIE_SECURE === 'true' || isProduction, // required for cross-site cookies
+            sameSite: process.env.COOKIE_SAME_SITE || 'none', // allow cross-site between Vercel and Render
             path: '/',
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+            domain: process.env.COOKIE_DOMAIN || undefined // Don't set domain for cross-domain cookies
         });
     }
 

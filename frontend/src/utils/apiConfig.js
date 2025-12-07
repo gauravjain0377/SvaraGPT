@@ -5,7 +5,13 @@ const normalizedBaseUrl = (rawBaseUrl && rawBaseUrl.length > 0 ? rawBaseUrl : fa
 
 export const API_BASE_URL = normalizedBaseUrl;
 
+// Log API base URL in development (helps with debugging)
+if (import.meta.env.DEV) {
+  console.log("🔗 API Base URL:", API_BASE_URL);
+}
+
 export const apiUrl = (path = "/") => {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${API_BASE_URL}${normalizedPath}`;
+  const fullUrl = `${API_BASE_URL}${normalizedPath}`;
+  return fullUrl;
 };

@@ -52,6 +52,8 @@ const extraAllowedOrigins = [
 
 const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins, ...extraAllowedOrigins].filter(Boolean))];
 
+// Log allowed origins for debugging
+console.log("🌐 Allowed CORS origins:", allowedOrigins);
 
 app.set("trust proxy", 1);
 app.use(express.json());
@@ -60,17 +62,22 @@ app.use(cors({
         const normalizedOrigin = normalizeOrigin(origin);
         // Allow non-browser requests or same-originless (like curl) and SSR prefetch
         if (!origin) {
+            console.log("⚠️  Request with no origin (non-browser or SSR)");
             return callback(null, true);
         }
         if (normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) {
+            console.log(`✅ CORS allowed for: ${origin}`);
             return callback(null, true);
         }
         console.log(`❌ CORS blocked for: ${origin}`);
+        console.log(`   Normalized: ${normalizedOrigin}`);
+        console.log(`   Allowed origins: ${allowedOrigins.join(", ")}`);
         return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie']
 }));
 app.use(cookieParser());
 app.use(session({
@@ -90,11 +97,12 @@ app.use(session({
         }
     }),
     cookie: {
-        secure: true, // Always use secure for cross-domain
-        sameSite: "none", // Required for cross-site cookies between Vercel and Render
+        secure: process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production', // Use secure in production
+        sameSite: process.env.COOKIE_SAME_SITE || "none", // Required for cross-site cookies between Vercel and Render
         httpOnly: true,
-        domain: process.env.COOKIE_DOMAIN || undefined,
-        maxAge: 24 * 60 * 60 * 1000
+        domain: process.env.COOKIE_DOMAIN || undefined, // Don't set domain for cross-domain cookies
+        maxAge: 24 * 60 * 60 * 1000,
+        path: '/'
     },
     proxy: true // Required when behind a proxy like Render
 }));

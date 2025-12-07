@@ -190,7 +190,10 @@ router.delete("/thread/:threadId", async (req, res) => {
 router.post("/chat", checkGuestLimit, async (req, res) => {
     const { threadId, message, projectId } = req.body;
 
+    console.log(`📨 Chat request received - User: ${req.isGuest ? 'Guest' : 'Authenticated'} (${req.userId}), Thread: ${threadId}, Message length: ${message?.length || 0}`);
+
     if (!threadId || !message) {
+        console.error("❌ Missing required fields - threadId:", !!threadId, "message:", !!message);
         return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -246,7 +249,13 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
             }
         }
 
+        console.log("🤖 Generating AI response...");
         const assistantReply = await getFastestResponse(message);
+        console.log(`✅ AI response generated (length: ${assistantReply?.length || 0})`);
+
+        if (!assistantReply || assistantReply.trim().length === 0) {
+            throw new Error("Empty response from AI provider");
+        }
 
         const assistantMessage = {
             messageId: uuidv4(),
@@ -259,13 +268,16 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
         thread.messages.push(assistantMessage);
         thread.lastMessageAt = new Date();
         await thread.save();
+        console.log("💾 Thread saved successfully");
 
         if (req.guestUsage) {
             req.guestUsage.totalMessages += 1;
             req.guestUsage.updatedAt = new Date();
             await req.guestUsage.save();
+            console.log(`👤 Guest usage updated: ${req.guestUsage.totalMessages}/3`);
         }
 
+        console.log("✅ Sending response to client");
         res.json({
             reply: assistantReply,
             threadId: thread.threadId,
@@ -273,9 +285,18 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
             assistantMessage
         });
     } catch (err) {
-        console.error("Chat endpoint error:", err.message);
-        console.error("Full error:", err);
-        res.status(500).json({ error: "Failed to generate response", details: err.message });
+        console.error("❌ Chat endpoint error:", err.message);
+        console.error("❌ Full error stack:", err.stack);
+        console.error("❌ Error details:", {
+            name: err.name,
+            message: err.message,
+            code: err.code
+        });
+        res.status(500).json({ 
+            error: "Failed to generate response", 
+            details: err.message,
+            type: err.name || "UnknownError"
+        });
     }
 });
 
