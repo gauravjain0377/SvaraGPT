@@ -146,7 +146,6 @@
     background-color: var(--bg-hover);
     border-color: var(--accent-color);
     transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
 }
 
 .promptCard:hover::before {
@@ -702,5 +701,31 @@ code {
     .messageUser:last-child,
     .messageAssistant:last-child {
         margin-bottom: 40px;
+    }
+    /* Phone layout: remove left avatars to prevent text overlap */
+    .assistantAvatar {
+        display: none !important;
+    }
+    /* Make message content use full available width */
+    .messageContent {
+        max-width: 100%;
+        gap: 6px;
+        margin: 0 auto;
+        align-items: stretch;
+    }
+    /* Ensure bubbles fill width and wrap robustly */
+    .messageAssistant .messageText,
+    .userMessageBox {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .messageAssistant .messageText p,
+    .messageAssistant .messageText div,
+    .userMessageBox p {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        hyphens: auto;
     }
 }
