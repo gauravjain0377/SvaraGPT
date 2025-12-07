@@ -377,6 +377,25 @@
     z-index: 2;
 }
 
+/* Improve assistant readability with a subtle bubble style */
+.messageAssistant .messageText {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: 18px;
+    padding: 14px 18px;
+}
+
+/* Lightweight role badges to differentiate prompt vs solution */
+.messageUser .messageText::before,
+.messageAssistant .messageText::before {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+}
+.messageUser .messageText::before { content: "You"; }
+.messageAssistant .messageText::before { content: "Assistant"; }
+
 .hljs {
     border-radius: 8px !important;
     background-color: var(--card-bg) !important;
@@ -635,7 +654,8 @@ code {
 @media (max-width: 768px) {
     .chats {
         padding: 16px;
-        padding-bottom: 80px;
+        /* Extra bottom padding so content never hides behind the input */
+        padding-bottom: calc(120px + env(safe-area-inset-bottom));
     }
     
     .messageUser:not(:first-child) {
@@ -649,6 +669,13 @@ code {
     
     .messageContent {
         gap: 8px;
+        /* Use full available width on small screens */
+        max-width: 100%;
+    }
+    .messageContent .assistantAvatar,
+    .messageContent .userAvatar {
+        width: 28px;
+        height: 28px;
     }
     
     .messageUser:last-child,
@@ -660,7 +687,7 @@ code {
 @media (max-width: 480px) {
     .chats {
         padding: 12px;
-        padding-bottom: 80px;
+        padding-bottom: calc(140px + env(safe-area-inset-bottom));
     }
     
     .messageUser:not(:first-child) {

@@ -476,6 +476,11 @@
     background-color: var(--bg-hover);
 }
 
+/* Hide per-item three-dots menus on small screens to reduce clutter */
+@media (max-width: 768px) {
+    .threeDots { display: none; }
+}
+
 .dropdownMenu {
     position: fixed;
     background-color: var(--bg-tertiary);

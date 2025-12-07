@@ -61,7 +61,7 @@
 
 /* Mobile Three Dots Menu */
 .mobile-menu-dots {
-    display: none;
+    display: none !important;
     width: 36px;
     height: 36px;
     border: none;
@@ -74,14 +74,10 @@
     transition: all 0.2s;
 }
 
-/* Show mobile menu dots on touch devices or small screens */
+/* Hide three-dots button across all devices; keep desktop profile visible */
 @media (max-width: 1100px), (hover: none) and (pointer: coarse) {
-    .mobile-menu-dots {
-        display: flex;
-    }
-    
     .desktop-user-profile {
-        display: none;
+        display: flex;
     }
 }
 
@@ -2430,14 +2426,13 @@
         margin-right: 8px;
     }
     
-    .mobile-menu-dots {
-        width: 32px;
-        height: 32px;
-    }
+    /* Ensure three-dots remains hidden on very small screens */
+    .mobile-menu-dots { display: none !important; }
     
     
     .inputSection {
-        padding: 12px;
+        /* Extra bottom padding so content and composer avoid keyboard overlap */
+        padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
     }
     
     .inputWrapper {
