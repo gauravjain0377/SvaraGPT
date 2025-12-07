@@ -1,9 +1,7 @@
 import express from "express";
 import Thread from "../models/Thread.js";
 import GuestUsage from "../models/GuestUsage.js";
-import { GoogleGenAI } from "@google/genai";
-import getGeminiResponse from "../utils/gemini.js";
-import getGitHubModelsResponse from "../utils/githubModels.js";
+import getGeminiResponse, { listAvailableModels } from "../utils/gemini.js";
 import { guestOrAuthGuard, checkGuestLimit } from "../middleware/guestOrAuthGuard.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -20,61 +18,53 @@ const handleDuplicateKeyError = async (err, req, res, next) => {
   throw err;
 };
 
+// Get available Gemini models (for debugging) - NO AUTH REQUIRED
+router.get("/models", async (req, res) => {
+    try {
+        if (!process.env.GOOGLE_API_KEY) {
+            return res.json({ 
+                error: "GOOGLE_API_KEY not configured",
+                available: [],
+                count: 0,
+                gemini: false
+            });
+        }
+        
+        const models = await listAvailableModels();
+        const modelNames = models.map(m => m.name).filter(Boolean);
+        res.json({ 
+            available: modelNames,
+            count: modelNames.length,
+            models: models,
+            gemini: true
+        });
+    } catch (err) {
+        console.error("Error listing models:", err);
+        res.status(500).json({ 
+            error: "Failed to list models", 
+            details: err.message,
+            gemini: !!process.env.GOOGLE_API_KEY
+        });
+    }
+});
+
 // Apply guest or auth guard to all routes (allows both authenticated and guest users)
 router.use(guestOrAuthGuard);
 
-const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
-
-// Race Gemini and GitHub Models; return first successful text
-async function getFastestResponse(message) {
-    // Try providers in parallel first
-    const attempts = [
-        getGeminiResponse(message)
-            .then(text => ({ provider: "gemini", text, success: true }))
-            .catch(err => ({ provider: "gemini", error: err.message, success: false })),
-        getGitHubModelsResponse(message)
-            .then(text => ({ provider: "github_models", text, success: true }))
-            .catch(err => ({ provider: "github_models", error: err.message, success: false }))
-    ];
+// Get Gemini AI response
+async function getGeminiAIResponse(message) {
+    if (!process.env.GOOGLE_API_KEY) {
+        throw new Error("GOOGLE_API_KEY not configured. Please set the Google API key in environment variables.");
+    }
 
     try {
-        // Wait for first successful response
-        const results = await Promise.race([
-            Promise.all(attempts).then(results => {
-                const successful = results.find(r => r.success);
-                if (successful) return successful;
-                throw new Error("All providers failed in parallel");
-            }),
-            // Also race each individual promise
-            ...attempts.map(p => p.then(r => r.success ? r : Promise.reject(r)))
-        ]);
-        
-        console.log(`✅ Response from ${results.provider}`);
-        return results.text;
-    } catch (error) {
-        // All parallel attempts failed, try sequential fallback
-        console.log("⚠️  Parallel attempts failed, trying sequential fallback...");
-        
-        // Try Gemini first
-        try {
-            const geminiText = await getGeminiResponse(message);
-            console.log("✅ Gemini fallback successful");
-            return geminiText;
-        } catch (geminiErr) {
-            console.log(`❌ Gemini failed: ${geminiErr.message}`);
-        }
-
-        // Try GitHub Models as last resort
-        try {
-            const githubText = await getGitHubModelsResponse(message);
-            console.log("✅ GitHub Models fallback successful");
-            return githubText;
-        } catch (githubErr) {
-            console.log(`❌ GitHub Models failed: ${githubErr.message}`);
-        }
-
-        // If everything fails, provide helpful error
-        throw new Error("All AI providers are currently unavailable. Please try again in a moment.");
+        console.log("🤖 Calling Gemini API...");
+        const response = await getGeminiResponse(message);
+        console.log(`✅ Gemini response received (length: ${response?.length || 0})`);
+        return response;
+    } catch (err) {
+        console.error(`❌ Gemini API error: ${err.message}`);
+        throw new Error(`Gemini API failed: ${err.message}`);
     }
 }
 
@@ -249,12 +239,26 @@ router.post("/chat", checkGuestLimit, async (req, res) => {
             }
         }
 
-        console.log("🤖 Generating AI response...");
-        const assistantReply = await getFastestResponse(message);
-        console.log(`✅ AI response generated (length: ${assistantReply?.length || 0})`);
+        console.log("🤖 Generating AI response with Gemini...");
+        
+        let assistantReply;
+        try {
+            assistantReply = await getGeminiAIResponse(message);
+            console.log(`✅ AI response generated (length: ${assistantReply?.length || 0})`);
+        } catch (aiError) {
+            console.error("❌ AI response generation failed:", aiError.message);
+            console.error("❌ AI error stack:", aiError.stack);
+            throw new Error(`Gemini API failed: ${aiError.message}`);
+        }
 
         if (!assistantReply || assistantReply.trim().length === 0) {
+            console.error("❌ Empty response received from AI provider");
             throw new Error("Empty response from AI provider");
+        }
+        
+        if (assistantReply === "No response generated") {
+            console.error("❌ AI provider returned 'No response generated'");
+            throw new Error("AI provider returned no valid response");
         }
 
         const assistantMessage = {
@@ -331,7 +335,7 @@ router.patch("/chat/:threadId/messages/:messageId", async (req, res) => {
             thread.messages.splice(assistantIndex, 1);
         }
 
-        const assistantReply = await getFastestResponse(content);
+        const assistantReply = await getGeminiAIResponse(content);
 
         const assistantMessage = {
             messageId: uuidv4(),
@@ -378,7 +382,7 @@ router.post("/chat/:threadId/messages/:messageId/regenerate", async (req, res) =
             return res.status(404).json({ error: "Assistant reply not found" });
         }
 
-        const assistantReply = await getFastestResponse(message.content);
+        const assistantReply = await getGeminiAIResponse(message.content);
 
         thread.messages[assistantIndex].content = assistantReply;
         thread.messages[assistantIndex].timestamp = new Date();

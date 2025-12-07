@@ -1431,7 +1431,7 @@ function ChatWindow() {
                                             </div>
                                             {expandedFAQ === 3 && (
                                                 <div className="faq-answer">
-                                                    SvaraGPT uses multiple AI providers including Google Gemini and GitHub Models to ensure reliable and high-quality responses. The system automatically selects the best available model for your query.
+                                                    SvaraGPT uses Google Gemini to provide reliable and high-quality responses for your queries.
                                                 </div>
                                             )}
                                         </div>
