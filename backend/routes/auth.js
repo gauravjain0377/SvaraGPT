@@ -25,6 +25,10 @@ const COOKIE_OPTIONS = {
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' in production for cross-domain
     path: "/", // Ensure cookies are available across all paths
     // Don't set domain - let browser handle it automatically for cross-origin requests
+    ...(process.env.NODE_ENV === 'production' && { 
+        // Additional settings for production to ensure cookies work cross-origin
+        partitioned: false // Disable partitioned cookies to allow cross-site access
+    })
 };
 
 // Debug endpoint to check OAuth configuration
@@ -76,6 +80,7 @@ function setAuthCookies(res, { accessToken, refreshToken }) {
     });
 
     try {
+        // Set cookies with explicit configuration
         res.cookie("svara_access", accessToken, {
             ...cookieOptions,
             maxAge: accessMaxAge,
@@ -89,6 +94,12 @@ function setAuthCookies(res, { accessToken, refreshToken }) {
         console.log('✅ [COOKIES] Auth cookies set successfully');
         console.log('🍪 [COOKIES] Access token length:', accessToken.length);
         console.log('🍪 [COOKIES] Refresh token length:', refreshToken.length);
+        
+        // Log the Set-Cookie headers to verify they're correct
+        const setCookieHeaders = res.getHeader('Set-Cookie');
+        if (setCookieHeaders) {
+            console.log('🍪 [COOKIES] Set-Cookie headers:', setCookieHeaders);
+        }
     } catch (error) {
         console.error('❌ [COOKIES] Failed to set auth cookies:', error);
         throw error;
@@ -877,6 +888,13 @@ router.get(
     async (req, res) => {
         try {
             console.log("✅ [GOOGLE CALLBACK] Processing authenticated user:", req.user?.email);
+            console.log("🔍 [GOOGLE CALLBACK] Request headers:", {
+                origin: req.headers.origin,
+                referer: req.headers.referer,
+                userAgent: req.headers['user-agent'],
+                forwardedProto: req.headers['x-forwarded-proto'],
+                host: req.headers.host
+            });
             
             if (!req.user) {
                 console.error("❌ [GOOGLE CALLBACK] User lost after authentication");
@@ -887,20 +905,46 @@ router.get(
             const tokens = await issueTokens(req.user, req);
             console.log("🔑 [GOOGLE CALLBACK] Tokens issued successfully");
             
-            console.log('🍪 [GOOGLE CALLBACK] Setting auth cookies');
-            setAuthCookies(res, tokens);
+            console.log('🍪 [GOOGLE CALLBACK] Setting auth cookies with explicit configuration');
+            
+            // Set cookies with explicit production-safe configuration
+            const accessMaxAge = parseInt(process.env.JWT_ACCESS_MAXAGE || "900", 10) * 1000;
+            const refreshMaxAge = parseInt(process.env.JWT_REFRESH_MAXAGE || "604800", 10) * 1000;
+            
+            const isProduction = process.env.NODE_ENV === 'production';
+            
+            const cookieOptions = {
+                httpOnly: true,
+                secure: isProduction, // Must be true for production (HTTPS)
+                sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-origin in production
+                path: "/",
+            };
+            
+            console.log('🍪 [GOOGLE CALLBACK] Cookie options:', cookieOptions);
+            
+            res.cookie("svara_access", tokens.accessToken, {
+                ...cookieOptions,
+                maxAge: accessMaxAge,
+            });
+            
+            res.cookie("svara_refresh", tokens.refreshToken, {
+                ...cookieOptions,
+                maxAge: refreshMaxAge,
+            });
+            
+            console.log('✅ [GOOGLE CALLBACK] Cookies set');
             
             // Create a temporary one-time token for cookie verification
             const verificationToken = jwt.sign(
                 { userId: req.user._id.toString(), purpose: 'oauth_complete' },
                 process.env.JWT_SECRET,
-                { expiresIn: '2m' }
+                { expiresIn: '5m' } // Increased to 5 minutes for better reliability
             );
             
             console.log("✅ [GOOGLE CALLBACK] Redirecting to frontend with verification token");
             console.log("✅ [GOOGLE CALLBACK] Redirect URL:", `${process.env.FRONTEND_URL}/auth/callback?token=${verificationToken.substring(0, 20)}...`);
             
-            // Redirect with token for frontend to verify cookies are set
+            // Redirect with token for frontend to verify and re-establish cookies
             res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${verificationToken}`);
         } catch (error) {
             console.error("❌ [GOOGLE CALLBACK] Internal server error:", error);
@@ -923,6 +967,11 @@ router.post("/verify-oauth", async (req, res) => {
     try {
         const { token } = req.body;
         
+        console.log('🔍 [VERIFY-OAUTH] Request received');
+        console.log('🔍 [VERIFY-OAUTH] Origin:', req.headers.origin);
+        console.log('🔍 [VERIFY-OAUTH] Cookie header:', req.headers.cookie);
+        console.log('🍪 [VERIFY-OAUTH] Parsed cookies:', req.cookies);
+        
         if (!token) {
             return res.status(400).json({ error: "Verification token required" });
         }
@@ -932,6 +981,7 @@ router.post("/verify-oauth", async (req, res) => {
         try {
             decoded = jwt.verify(token, process.env.JWT_SECRET);
         } catch (error) {
+            console.error('❌ [VERIFY-OAUTH] Token verification failed:', error.message);
             return res.status(401).json({ error: "Invalid or expired token" });
         }
         
@@ -940,38 +990,54 @@ router.post("/verify-oauth", async (req, res) => {
             return res.status(400).json({ error: "Invalid token purpose" });
         }
         
-        // Check if cookies are already set (successful case)
-        if (req.cookies?.svara_access && req.cookies?.svara_refresh) {
-            console.log('✅ [VERIFY-OAUTH] Cookies already set, returning user info');
-            const user = await User.findById(decoded.userId);
-            if (!user) {
-                return res.status(404).json({ error: "User not found" });
-            }
-            return res.json({ 
-                success: true, 
-                user: user.profile(),
-                cookiesSet: true 
-            });
-        }
-        
-        // Cookies not set, re-issue them
-        console.log('⚠️ [VERIFY-OAUTH] Cookies not found, re-issuing tokens');
+        // ALWAYS re-issue tokens to ensure they're set properly in the browser
+        // This fixes the issue where cookies might not persist after redirect
+        console.log('🔑 [VERIFY-OAUTH] Re-issuing tokens to ensure proper cookie setting');
         const user = await User.findById(decoded.userId);
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
         
+        // Generate fresh tokens
         const tokens = await issueTokens(user, req);
-        setAuthCookies(res, tokens);
+        
+        // Set cookies with explicit configuration for cross-origin
+        const isProduction = process.env.NODE_ENV === 'production';
+        
+        const cookieOptions = {
+            httpOnly: true,
+            secure: isProduction, // Must match environment - false for localhost HTTP, true for production HTTPS
+            sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-origin in production, 'lax' for localhost
+            path: "/",
+            maxAge: parseInt(process.env.JWT_ACCESS_MAXAGE || "900", 10) * 1000
+        };
+        
+        const refreshCookieOptions = {
+            ...cookieOptions,
+            maxAge: parseInt(process.env.JWT_REFRESH_MAXAGE || "604800", 10) * 1000
+        };
+        
+        console.log('🍪 [VERIFY-OAUTH] Setting cookies with options:', {
+            ...cookieOptions,
+            isProduction,
+            nodeEnv: process.env.NODE_ENV
+        });
+        
+        res.cookie("svara_access", tokens.accessToken, cookieOptions);
+        res.cookie("svara_refresh", tokens.refreshToken, refreshCookieOptions);
+        
+        console.log('✅ [VERIFY-OAUTH] Cookies set successfully');
         
         res.json({ 
             success: true, 
             user: user.profile(),
-            cookiesSet: false,
-            reissued: true
+            cookiesSet: true,
+            reissued: true,
+            message: "OAuth verification complete, cookies set"
         });
     } catch (error) {
         console.error("❌ [VERIFY-OAUTH] Error:", error);
+        console.error("❌ [VERIFY-OAUTH] Stack:", error.stack);
         res.status(500).json({ error: "Failed to verify OAuth completion" });
     }
 });

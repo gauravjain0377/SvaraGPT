@@ -32,21 +32,49 @@ export const AuthProvider = ({ children }) => {
                     setLoading(false);
                     setIsInitialized(true);
                     
-                    // Verify in background that cookies are working
-                    fetch(apiUrl("/auth/me"), {
-                        credentials: "include",
-                        cache: "no-cache",
-                    }).then(async (response) => {
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.user) {
-                                console.log("✅ [AUTH CONTEXT] Verified cookies are working");
-                                setUser(data.user); // Update with fresh data
+                    // Verify in background that cookies are working with retry logic
+                    const verifyWithRetry = async (retries = 3, delay = 1000) => {
+                        for (let i = 0; i < retries; i++) {
+                            try {
+                                console.log(`🔄 [AUTH CONTEXT] Verification attempt ${i + 1}/${retries}`);
+                                
+                                const response = await fetch(apiUrl("/auth/me"), {
+                                    credentials: "include",
+                                    cache: "no-cache",
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+                                
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    if (data.user) {
+                                        console.log("✅ [AUTH CONTEXT] Cookies verified successfully on attempt", i + 1);
+                                        setUser(data.user); // Update with fresh data
+                                        return;
+                                    }
+                                } else {
+                                    console.warn(`⚠️ [AUTH CONTEXT] Verification attempt ${i + 1} failed with status:`, response.status);
+                                }
+                                
+                                // Wait before retrying (except on last attempt)
+                                if (i < retries - 1) {
+                                    await new Promise(resolve => setTimeout(resolve, delay));
+                                }
+                            } catch (err) {
+                                console.warn(`⚠️ [AUTH CONTEXT] Verification attempt ${i + 1} error:`, err);
+                                if (i < retries - 1) {
+                                    await new Promise(resolve => setTimeout(resolve, delay));
+                                }
                             }
                         }
-                    }).catch((err) => {
-                        console.warn("⚠️ [AUTH CONTEXT] Background verification failed:", err);
-                    });
+                        
+                        console.error("❌ [AUTH CONTEXT] All verification attempts failed - cookies may not be working in production");
+                        console.error("❌ [AUTH CONTEXT] User will remain authenticated via localStorage fallback");
+                    };
+                    
+                    verifyWithRetry();
                     
                     return; // Exit early with OAuth user
                 } catch (e) {
@@ -59,6 +87,10 @@ export const AuthProvider = ({ children }) => {
             const response = await fetch(apiUrl("/auth/me"), {
                 credentials: "include",
                 cache: "no-cache",
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (response.ok) {

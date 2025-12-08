@@ -127,10 +127,13 @@ app.use(cors({
         console.log(`   Allowed origins: ${allowedOrigins.join(", ")}`);
         return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,
+    credentials: true, // Critical for cross-origin cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['Set-Cookie']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Set-Cookie'], // Expose Set-Cookie header to the client
+    maxAge: 86400, // Cache preflight requests for 24 hours
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 }));
 app.use(cookieParser());
 app.use(session({

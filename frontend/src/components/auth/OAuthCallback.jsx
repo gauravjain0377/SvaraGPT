@@ -22,16 +22,25 @@ const OAuthCallback = () => {
 
             try {
                 console.log("🔄 Verifying OAuth completion...");
+                console.log("🔄 Token:", token);
                 
                 const response = await fetch(apiUrl("/auth/verify-oauth"), {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
                     credentials: "include",
                     body: JSON.stringify({ token }),
                 });
 
+                console.log("📡 Response status:", response.status);
+                console.log("📡 Response headers:", Object.fromEntries(response.headers.entries()));
+
                 if (!response.ok) {
-                    throw new Error("OAuth verification failed");
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error("❌ OAuth verification failed:", errorData);
+                    throw new Error(errorData.error || "OAuth verification failed");
                 }
 
                 const data = await response.json();
@@ -43,18 +52,22 @@ const OAuthCallback = () => {
 
                 setStatus("success");
                 
-                // Store user in localStorage as a fallback
+                // Store user in localStorage as a fallback (critical for production)
                 localStorage.setItem('oauthUser', JSON.stringify(data.user));
                 console.log("💾 Stored user in localStorage");
+                console.log("🍪 Cookies set:", data.cookiesSet);
+                console.log("🔄 Reissued:", data.reissued);
                 
-                // Small delay to ensure cookies are set in browser
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Longer delay to ensure cookies are properly set in browser
+                // This is critical for cross-origin cookie handling
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 // Redirect to chats - AuthContext will pick up the user
                 console.log("🔄 Redirecting to /chats...");
                 window.location.href = "/chats"; // Force full page reload to ensure cookies are available
             } catch (err) {
                 console.error("❌ OAuth verification error:", err);
+                console.error("❌ Error stack:", err.stack);
                 setError(err.message || "Verification failed");
                 setStatus("error");
                 setTimeout(() => navigate("/login"), 3000);
