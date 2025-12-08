@@ -402,6 +402,16 @@
     font-family: inherit;
 }
 
+/* Hide scrollbar for chat input */
+.chatInput::-webkit-scrollbar {
+    display: none;
+}
+
+.chatInput {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
 .chatInput::placeholder {
     color: var(--text-tertiary);
 }
