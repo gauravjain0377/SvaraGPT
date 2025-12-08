@@ -16,6 +16,7 @@ import { sendContactEmail } from "../utils/mailer.js";
 import { generateVerificationCode } from "../utils/verification.js";
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils/tokens.js";
 import { authGuard } from "../middleware/authGuard.js";
+import { initializeGoogleStrategy } from "../config/passport.js";
 
 const router = express.Router();
 
@@ -31,6 +32,11 @@ console.log('🍪 [COOKIE_OPTIONS] Initialized with:', COOKIE_OPTIONS);
 
 // Debug endpoint to check OAuth configuration
 router.get("/debug/oauth-config", (req, res) => {
+    console.log('🔍 [DEBUG] OAuth config endpoint called');
+    console.log('🔍 [DEBUG] GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
+    console.log('🔍 [DEBUG] FRONTEND_URL:', process.env.FRONTEND_URL);
+    console.log('🔍 [DEBUG] NODE_ENV:', process.env.NODE_ENV);
+    
     res.json({
         GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || "NOT SET",
         FRONTEND_URL: process.env.FRONTEND_URL || "NOT SET",
@@ -787,6 +793,9 @@ router.get("/google", (req, res, next) => {
     console.log('🔍 [GOOGLE AUTH] GOOGLE_CALLBACK_URL from env:', process.env.GOOGLE_CALLBACK_URL);
     console.log('🔍 [GOOGLE AUTH] FRONTEND_URL from env:', process.env.FRONTEND_URL);
     console.log('🔍 [GOOGLE AUTH] Request origin:', req.get('Origin'));
+    
+    // Ensure Google strategy is initialized
+    initializeGoogleStrategy();
     next();
 }, passport.authenticate("google", {
     scope: ["profile", "email"],
@@ -800,6 +809,9 @@ router.get(
         console.log('🔄 [GOOGLE CALLBACK] Query params:', req.query);
         console.log('🔄 [GOOGLE CALLBACK] Headers:', req.headers);
         console.log('🔄 [GOOGLE CALLBACK] Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+        
+        // Ensure Google strategy is initialized
+        initializeGoogleStrategy();
         next();
     },
     (req, res, next) => {
