@@ -21,10 +21,10 @@ const router = express.Router();
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Only secure in production
+    secure: process.env.NODE_ENV === 'production', // Only secure in production (HTTPS required)
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' in production for cross-domain
-    domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Don't set domain in production for cross-subdomain
     path: "/", // Ensure cookies are available across all paths
+    // Don't set domain - let browser handle it automatically for cross-origin requests
 };
 
 // Debug endpoint to check OAuth configuration
@@ -36,28 +36,52 @@ router.get("/debug/oauth-config", (req, res) => {
     });
 });
 
+// Debug endpoint to check cookies
+router.get("/debug/cookies", (req, res) => {
+    console.log('🔍 [DEBUG] Checking cookies:', req.cookies);
+    console.log('🔍 [DEBUG] Request headers:', req.headers);
+    res.json({
+        cookies: req.cookies || {},
+        hasSvaraAccess: !!req.cookies?.svara_access,
+        hasSvaraRefresh: !!req.cookies?.svara_refresh,
+        cookieHeader: req.headers.cookie || "NO COOKIE HEADER",
+        origin: req.headers.origin || "NO ORIGIN",
+        nodeEnv: process.env.NODE_ENV
+    });
+});
+
 function setAuthCookies(res, { accessToken, refreshToken }) {
-    console.log('🍪 [COOKIES] Setting auth cookies with options:', COOKIE_OPTIONS);
-    
     const accessMaxAge = parseInt(process.env.JWT_ACCESS_MAXAGE || "900", 10) * 1000;
     const refreshMaxAge = parseInt(process.env.JWT_REFRESH_MAXAGE || "604800", 10) * 1000;
 
+    const cookieOptions = {
+        ...COOKIE_OPTIONS,
+    };
+    
+    console.log('🍪 [COOKIES] Setting auth cookies with options:', {
+        ...cookieOptions,
+        accessMaxAge,
+        refreshMaxAge,
+        nodeEnv: process.env.NODE_ENV
+    });
+
     try {
-        console.log('🍪 [COOKIES] Setting svara_access cookie');
         res.cookie("svara_access", accessToken, {
-            ...COOKIE_OPTIONS,
+            ...cookieOptions,
             maxAge: accessMaxAge,
         });
         
-        console.log('🍪 [COOKIES] Setting svara_refresh cookie');
         res.cookie("svara_refresh", refreshToken, {
-            ...COOKIE_OPTIONS,
+            ...cookieOptions,
             maxAge: refreshMaxAge,
         });
         
         console.log('✅ [COOKIES] Auth cookies set successfully');
+        console.log('🍪 [COOKIES] Access token length:', accessToken.length);
+        console.log('🍪 [COOKIES] Refresh token length:', refreshToken.length);
     } catch (error) {
         console.error('❌ [COOKIES] Failed to set auth cookies:', error);
+        throw error;
     }
 }
 
@@ -800,7 +824,9 @@ router.get(
         // Log the incoming request for debugging
         console.log("🔄 [GOOGLE CALLBACK] Received request:", {
             query: req.query,
-            headers: Object.keys(req.headers)
+            headers: Object.keys(req.headers),
+            origin: req.headers.origin,
+            referer: req.headers.referer
         });
         next();
     },
@@ -825,13 +851,20 @@ router.get(
             }
             
             const tokens = await issueTokens(req.user, req);
+            
+            console.log('🍪 [GOOGLE CALLBACK] Setting auth cookies');
             setAuthCookies(res, tokens);
             
-            // Add a small delay to ensure cookies are set before redirecting
-            setTimeout(() => {
-                console.log("✅ [GOOGLE CALLBACK] Redirecting to frontend:", `${process.env.FRONTEND_URL}/chats`);
-                res.redirect(`${process.env.FRONTEND_URL}/chats`);
-            }, 100);
+            // Create a temporary one-time token for cookie verification
+            const verificationToken = jwt.sign(
+                { userId: req.user._id.toString(), purpose: 'oauth_complete' },
+                process.env.JWT_SECRET,
+                { expiresIn: '2m' } // Short-lived token
+            );
+            
+            console.log("✅ [GOOGLE CALLBACK] Redirecting to frontend with verification token");
+            // Redirect with token for frontend to verify cookies are set
+            res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${verificationToken}`);
         } catch (error) {
             console.error("❌ [GOOGLE CALLBACK] Internal server error:", error);
             res.redirect(`${process.env.FRONTEND_URL}/login?error=internal_server_error`);
@@ -845,6 +878,64 @@ router.get("/google/success", (req, res) => {
     }
 
     res.json({ user: req.user.profile() });
+});
+
+// OAuth completion verification endpoint
+router.post("/verify-oauth", async (req, res) => {
+    try {
+        const { token } = req.body;
+        
+        if (!token) {
+            return res.status(400).json({ error: "Verification token required" });
+        }
+        
+        // Verify the one-time token
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (error) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+        }
+        
+        // Check if this is an OAuth completion token
+        if (decoded.purpose !== 'oauth_complete') {
+            return res.status(400).json({ error: "Invalid token purpose" });
+        }
+        
+        // Check if cookies are already set (successful case)
+        if (req.cookies?.svara_access && req.cookies?.svara_refresh) {
+            console.log('✅ [VERIFY-OAUTH] Cookies already set, returning user info');
+            const user = await User.findById(decoded.userId);
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            return res.json({ 
+                success: true, 
+                user: user.profile(),
+                cookiesSet: true 
+            });
+        }
+        
+        // Cookies not set, re-issue them
+        console.log('⚠️ [VERIFY-OAUTH] Cookies not found, re-issuing tokens');
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        const tokens = await issueTokens(user, req);
+        setAuthCookies(res, tokens);
+        
+        res.json({ 
+            success: true, 
+            user: user.profile(),
+            cookiesSet: false,
+            reissued: true
+        });
+    } catch (error) {
+        console.error("❌ [VERIFY-OAUTH] Error:", error);
+        res.status(500).json({ error: "Failed to verify OAuth completion" });
+    }
 });
 
 async function issueTokens(user, req) {

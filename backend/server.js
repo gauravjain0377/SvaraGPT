@@ -96,12 +96,12 @@ app.use(session({
         }
     }),
     cookie: {
-        secure: process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production', // Use secure in production
+        secure: process.env.NODE_ENV === 'production', // Use secure in production (HTTPS required)
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' in production for cross-domain
         httpOnly: true,
-        domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Don't set domain in production for cross-subdomain
         maxAge: 24 * 60 * 60 * 1000,
         path: '/'
+        // Don't set domain - let browser handle it automatically for cross-origin requests
     },
     proxy: true // Required when behind a proxy like Render
 }));

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import Auth from './components/auth/Login.jsx'
+import OAuthCallback from './components/auth/OAuthCallback.jsx'
 import ActiveSessions from './components/Settings/ActiveSessions.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/login" element={<Auth />} />
           <Route path="/register" element={<Auth />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<OAuthCallback />} />
           <Route path="/settings/sessions" element={<ActiveSessions />} />
           <Route path="/home" element={<Navigate to="/chats" replace />} />
           <Route path="/chats" element={<App />} />
