@@ -232,8 +232,6 @@ export const AuthProvider = ({ children }) => {
 
     const loginWithGoogle = () => {
         const googleAuthUrl = apiUrl("/auth/google");
-        console.log('🚀 Initiating Google OAuth with URL:', googleAuthUrl);
-        
         // Create a form and submit it to avoid potential browser security restrictions
         const form = document.createElement('form');
         form.method = 'GET';

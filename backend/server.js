@@ -17,15 +17,6 @@ if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = process.env.RENDER_EXTERNAL_URL || process.env.VERCEL_URL ? 'production' : 'development';
 }
 
-// Log important environment variables for debugging
-console.log('🚀 Server starting with environment variables:');
-console.log('   NODE_ENV:', process.env.NODE_ENV);
-console.log('   GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
-console.log('   FRONTEND_URL:', process.env.FRONTEND_URL);
-console.log('   VERCEL_URL:', process.env.VERCEL_URL);
-console.log('   RENDER_EXTERNAL_URL:', process.env.RENDER_EXTERNAL_URL);
-console.log('Environment:', process.env.NODE_ENV);
-
 const app = express();
 const PORT = process.env.PORT || 8080;
 
