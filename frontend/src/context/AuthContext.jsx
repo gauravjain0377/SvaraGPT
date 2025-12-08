@@ -21,20 +21,57 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuth = async () => {
         try {
+            // First, check if there's a temporary OAuth user in localStorage
+            const oauthUser = localStorage.getItem('oauthUser');
+            if (oauthUser) {
+                try {
+                    const userData = JSON.parse(oauthUser);
+                    console.log("✅ [AUTH CONTEXT] Found OAuth user in localStorage:", userData.email);
+                    setUser(userData);
+                    localStorage.removeItem('oauthUser'); // Clear it after use
+                    setLoading(false);
+                    setIsInitialized(true);
+                    
+                    // Verify in background that cookies are working
+                    fetch(apiUrl("/auth/me"), {
+                        credentials: "include",
+                        cache: "no-cache",
+                    }).then(async (response) => {
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.user) {
+                                console.log("✅ [AUTH CONTEXT] Verified cookies are working");
+                                setUser(data.user); // Update with fresh data
+                            }
+                        }
+                    }).catch((err) => {
+                        console.warn("⚠️ [AUTH CONTEXT] Background verification failed:", err);
+                    });
+                    
+                    return; // Exit early with OAuth user
+                } catch (e) {
+                    console.error("❌ [AUTH CONTEXT] Failed to parse OAuth user:", e);
+                    localStorage.removeItem('oauthUser');
+                }
+            }
+            
+            // Normal auth check via cookies
             const response = await fetch(apiUrl("/auth/me"), {
                 credentials: "include",
-                cache: "no-cache", // Prevent caching
+                cache: "no-cache",
             });
 
             if (response.ok) {
                 const data = await response.json();
-                // Only set user if we have valid user data
                 if (data.user && (data.user.email || data.user.name)) {
+                    console.log("✅ [AUTH CONTEXT] User authenticated via cookies:", data.user.email);
                     setUser(data.user);
                 } else {
+                    console.warn("⚠️ [AUTH CONTEXT] No valid user data in response");
                     setUser(null);
                 }
             } else {
+                console.warn("⚠️ [AUTH CONTEXT] Auth check failed with status:", response.status);
                 setUser(null);
             }
         } catch (error) {

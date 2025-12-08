@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import { apiUrl } from "../../utils/apiConfig";
 import "./Auth.css";
 
 const OAuthCallback = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { checkAuth } = useAuth();
     const [status, setStatus] = useState("verifying");
     const [error, setError] = useState(null);
 
@@ -39,15 +37,22 @@ const OAuthCallback = () => {
                 const data = await response.json();
                 console.log("✅ OAuth verification successful:", data);
 
+                if (!data.success || !data.user) {
+                    throw new Error("Invalid response from server");
+                }
+
                 setStatus("success");
                 
-                // Re-check auth to update context
-                await checkAuth();
+                // Store user in localStorage as a fallback
+                localStorage.setItem('oauthUser', JSON.stringify(data.user));
+                console.log("💾 Stored user in localStorage");
                 
-                // Redirect to chats after successful verification
-                setTimeout(() => {
-                    navigate("/chats", { replace: true });
-                }, 500);
+                // Small delay to ensure cookies are set in browser
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Redirect to chats - AuthContext will pick up the user
+                console.log("🔄 Redirecting to /chats...");
+                window.location.href = "/chats"; // Force full page reload to ensure cookies are available
             } catch (err) {
                 console.error("❌ OAuth verification error:", err);
                 setError(err.message || "Verification failed");
@@ -57,7 +62,7 @@ const OAuthCallback = () => {
         };
 
         verifyOAuth();
-    }, [searchParams, navigate, checkAuth]);
+    }, [searchParams, navigate]);
 
     return (
         <div className="auth-container">

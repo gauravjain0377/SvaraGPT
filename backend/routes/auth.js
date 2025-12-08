@@ -349,16 +349,18 @@ router.post("/logout", async (req, res) => {
 });
 
 router.get("/me", authGuard, (req, res, next) => {
-    console.log("🔍 /auth/me request received");
-    console.log("🍪 Cookies:", req.cookies);
-    console.log("👤 User in session:", req.user);
+    console.log("🔍 [/auth/me] Request received");
+    console.log("🔍 [/auth/me] Origin:", req.headers.origin);
+    console.log("🔍 [/auth/me] Cookie header:", req.headers.cookie);
+    console.log("🍪 [/auth/me] Parsed cookies:", req.cookies);
+    console.log("👤 [/auth/me] User from authGuard:", req.user ? req.user.email : "NO USER");
     
     if (!req.user) {
-        console.log("❌ No authenticated user found");
+        console.log("❌ [/auth/me] No authenticated user found");
         return res.status(401).json({ error: "Authentication required" });
     }
     
-    console.log("✅ User authenticated:", req.user.email);
+    console.log("✅ [/auth/me] User authenticated successfully:", req.user.email);
     res.json({ user: req.user.profile ? req.user.profile() : req.user });
 });
 
