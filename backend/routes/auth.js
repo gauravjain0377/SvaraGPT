@@ -993,10 +993,10 @@ router.post("/verify-oauth", async (req, res) => {
         // ALWAYS re-issue tokens to ensure they're set properly in the browser
         // This fixes the issue where cookies might not persist after redirect
         console.log('🔑 [VERIFY-OAUTH] Re-issuing tokens to ensure proper cookie setting');
-        const user = await User.findById(decoded.userId);
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
+            const user = await User.findById(decoded.userId);
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
         
         // Generate fresh tokens
         const tokens = await issueTokens(user, req);

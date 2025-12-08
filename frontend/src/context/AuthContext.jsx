@@ -19,6 +19,31 @@ export const AuthProvider = ({ children }) => {
     const [guestId, setGuestId] = useState(null);
     const location = useLocation();
 
+    const AUTH_USER_KEY = "authUser";
+
+    const loadStoredUser = () => {
+        try {
+            const stored = localStorage.getItem(AUTH_USER_KEY);
+            if (!stored) return null;
+            return JSON.parse(stored);
+        } catch (e) {
+            console.error("❌ [AUTH CONTEXT] Failed to load stored user:", e);
+            return null;
+        }
+    };
+
+    const persistUser = (userData) => {
+        try {
+            if (userData) {
+                localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+            } else {
+                localStorage.removeItem(AUTH_USER_KEY);
+            }
+        } catch (e) {
+            console.error("❌ [AUTH CONTEXT] Failed to persist user:", e);
+        }
+    };
+
     const checkAuth = async () => {
         try {
             // First, check if there's a temporary OAuth user in localStorage
@@ -28,6 +53,7 @@ export const AuthProvider = ({ children }) => {
                     const userData = JSON.parse(oauthUser);
                     console.log("✅ [AUTH CONTEXT] Found OAuth user in localStorage:", userData.email);
                     setUser(userData);
+                    persistUser(userData);
                     localStorage.removeItem('oauthUser'); // Clear it after use
                     setLoading(false);
                     setIsInitialized(true);
@@ -52,8 +78,8 @@ export const AuthProvider = ({ children }) => {
                                     if (data.user) {
                                         console.log("✅ [AUTH CONTEXT] Cookies verified successfully on attempt", i + 1);
                                         setUser(data.user); // Update with fresh data
+                                        persistUser(data.user);
                                         return;
-                                    }
                                 } else {
                                     console.warn(`⚠️ [AUTH CONTEXT] Verification attempt ${i + 1} failed with status:`, response.status);
                                 }
@@ -98,17 +124,33 @@ export const AuthProvider = ({ children }) => {
                 if (data.user && (data.user.email || data.user.name)) {
                     console.log("✅ [AUTH CONTEXT] User authenticated via cookies:", data.user.email);
                     setUser(data.user);
+                    persistUser(data.user);
                 } else {
                     console.warn("⚠️ [AUTH CONTEXT] No valid user data in response");
+                    persistUser(null);
                     setUser(null);
                 }
             } else {
                 console.warn("⚠️ [AUTH CONTEXT] Auth check failed with status:", response.status);
-                setUser(null);
+                // If we already have a stored user (e.g., OAuth in environments where cookies don't work),
+                // keep that user instead of forcing logout.
+                const storedUser = loadStoredUser();
+                if (storedUser) {
+                    console.warn("⚠️ [AUTH CONTEXT] Using stored user fallback after auth failure");
+                    setUser(storedUser);
+                } else {
+                    setUser(null);
+                }
             }
         } catch (error) {
             console.error("❌ [AUTH CONTEXT] Auth check failed:", error);
-            setUser(null);
+            const storedUser = loadStoredUser();
+            if (storedUser) {
+                console.warn("⚠️ [AUTH CONTEXT] Using stored user fallback after auth error");
+                setUser(storedUser);
+            } else {
+                setUser(null);
+            }
         } finally {
             setLoading(false);
             setIsInitialized(true);
@@ -292,6 +334,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('threads');
             localStorage.removeItem('currentProject');
             localStorage.removeItem('currentThread');
+            localStorage.removeItem(AUTH_USER_KEY);
             
             setUser(null);
             // Redirect to home page (guest mode) instead of login
