@@ -29,10 +29,20 @@ const COOKIE_OPTIONS = {
 
 // Debug endpoint to check OAuth configuration
 router.get("/debug/oauth-config", (req, res) => {
+    const hasClientId = !!process.env.GOOGLE_CLIENT_ID;
+    const hasClientSecret = !!process.env.GOOGLE_CLIENT_SECRET;
+    const hasJwtSecret = !!process.env.JWT_SECRET;
+    
     res.json({
         GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || "NOT SET",
+        GOOGLE_CLIENT_ID: hasClientId ? `${process.env.GOOGLE_CLIENT_ID.substring(0, 20)}...` : "NOT SET",
+        GOOGLE_CLIENT_SECRET: hasClientSecret ? "SET (hidden)" : "NOT SET",
+        JWT_SECRET: hasJwtSecret ? "SET (hidden)" : "NOT SET",
         FRONTEND_URL: process.env.FRONTEND_URL || "NOT SET",
-        NODE_ENV: process.env.NODE_ENV || "NOT SET"
+        NODE_ENV: process.env.NODE_ENV || "NOT SET",
+        MONGODB_URL: process.env.MONGODB_URL ? "SET (hidden)" : "NOT SET",
+        allRequiredVarsSet: hasClientId && hasClientSecret && hasJwtSecret,
+        configStatus: hasClientId && hasClientSecret && hasJwtSecret ? "✅ All required variables set" : "❌ Missing required variables"
     });
 });
 
@@ -809,10 +819,11 @@ router.post(
 );
 
 router.get("/google", (req, res, next) => {
-    // Small delay to ensure environment variables are fully loaded
-    setTimeout(() => {
-        next();
-    }, 100);
+    console.log("🔵 [GOOGLE AUTH] Initiating Google OAuth");
+    console.log("🔵 [GOOGLE AUTH] GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "SET" : "NOT SET");
+    console.log("🔵 [GOOGLE AUTH] GOOGLE_CALLBACK_URL:", process.env.GOOGLE_CALLBACK_URL);
+    console.log("🔵 [GOOGLE AUTH] NODE_ENV:", process.env.NODE_ENV);
+    next();
 }, passport.authenticate("google", {
     scope: ["profile", "email"],
     prompt: "select_account",
@@ -822,35 +833,57 @@ router.get(
     "/google/callback",
     (req, res, next) => {
         // Log the incoming request for debugging
-        console.log("🔄 [GOOGLE CALLBACK] Received request:", {
-            query: req.query,
-            headers: Object.keys(req.headers),
-            origin: req.headers.origin,
-            referer: req.headers.referer
-        });
+        console.log("🔄 [GOOGLE CALLBACK] Received callback from Google");
+        console.log("🔄 [GOOGLE CALLBACK] Query params:", req.query);
+        console.log("🔄 [GOOGLE CALLBACK] Has error:", !!req.query.error);
+        console.log("🔄 [GOOGLE CALLBACK] Has code:", !!req.query.code);
+        console.log("🔄 [GOOGLE CALLBACK] Origin:", req.headers.origin);
+        console.log("🔄 [GOOGLE CALLBACK] Referer:", req.headers.referer);
+        
+        // If Google returned an error, log it
+        if (req.query.error) {
+            console.error("❌ [GOOGLE CALLBACK] Google OAuth error:", req.query.error);
+            return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_denied`);
+        }
+        
         next();
     },
     (req, res, next) => {
-        passport.authenticate("google", { 
-            failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed` 
-        })(req, res, (err) => {
+        console.log("🔄 [GOOGLE CALLBACK] Authenticating with Passport...");
+        
+        passport.authenticate("google", (err, user, info) => {
             if (err) {
-                console.error("❌ [GOOGLE CALLBACK] Authentication error:", err);
-                return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+                console.error("❌ [GOOGLE CALLBACK] Passport authentication error:", err);
+                console.error("❌ [GOOGLE CALLBACK] Error stack:", err.stack);
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_error&details=${encodeURIComponent(err.message)}`);
             }
+            
+            if (!user) {
+                console.error("❌ [GOOGLE CALLBACK] No user returned from Passport");
+                console.error("❌ [GOOGLE CALLBACK] Info:", info);
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user_created`);
+            }
+            
+            console.log("✅ [GOOGLE CALLBACK] Passport authentication successful");
+            console.log("✅ [GOOGLE CALLBACK] User email:", user.email);
+            console.log("✅ [GOOGLE CALLBACK] User ID:", user._id);
+            
+            req.user = user;
             next();
-        });
+        })(req, res, next);
     },
     async (req, res) => {
         try {
-            console.log("✅ [GOOGLE CALLBACK] Authentication successful, user:", req.user?.email);
+            console.log("✅ [GOOGLE CALLBACK] Processing authenticated user:", req.user?.email);
             
             if (!req.user) {
-                console.error("❌ [GOOGLE CALLBACK] No user found after authentication");
-                return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user`);
+                console.error("❌ [GOOGLE CALLBACK] User lost after authentication");
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=user_lost`);
             }
             
+            console.log("🔑 [GOOGLE CALLBACK] Issuing tokens...");
             const tokens = await issueTokens(req.user, req);
+            console.log("🔑 [GOOGLE CALLBACK] Tokens issued successfully");
             
             console.log('🍪 [GOOGLE CALLBACK] Setting auth cookies');
             setAuthCookies(res, tokens);
@@ -859,15 +892,18 @@ router.get(
             const verificationToken = jwt.sign(
                 { userId: req.user._id.toString(), purpose: 'oauth_complete' },
                 process.env.JWT_SECRET,
-                { expiresIn: '2m' } // Short-lived token
+                { expiresIn: '2m' }
             );
             
             console.log("✅ [GOOGLE CALLBACK] Redirecting to frontend with verification token");
+            console.log("✅ [GOOGLE CALLBACK] Redirect URL:", `${process.env.FRONTEND_URL}/auth/callback?token=${verificationToken.substring(0, 20)}...`);
+            
             // Redirect with token for frontend to verify cookies are set
             res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${verificationToken}`);
         } catch (error) {
             console.error("❌ [GOOGLE CALLBACK] Internal server error:", error);
-            res.redirect(`${process.env.FRONTEND_URL}/login?error=internal_server_error`);
+            console.error("❌ [GOOGLE CALLBACK] Error stack:", error.stack);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error&details=${encodeURIComponent(error.message)}`);
         }
     }
 );

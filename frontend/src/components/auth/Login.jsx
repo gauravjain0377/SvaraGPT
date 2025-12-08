@@ -1,11 +1,47 @@
 import { useAuth } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import "./Auth.css";
 import logo from "../../assets/logo.png";
 
 const Auth = () => {
     const { loginWithGoogle } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [errorDetails, setErrorDetails] = useState(null);
+
+    useEffect(() => {
+        const error = searchParams.get("error");
+        const details = searchParams.get("details");
+        
+        if (error) {
+            console.error("❌ [LOGIN] OAuth error:", error, details);
+            
+            const errorMessages = {
+                google_auth_failed: "Google sign-in failed. Please try again.",
+                google_denied: "Google sign-in was cancelled. Please try again.",
+                auth_error: "Authentication error occurred. Please try again.",
+                no_user_created: "Failed to create user account. Please try again.",
+                user_lost: "Session lost during authentication. Please try again.",
+                server_error: "Server error occurred. Please try again later.",
+                no_user: "User not found after authentication. Please try again.",
+                internal_server_error: "Internal server error. Please try again later."
+            };
+            
+            setErrorMessage(errorMessages[error] || "An error occurred during sign-in. Please try again.");
+            if (details) {
+                setErrorDetails(decodeURIComponent(details));
+            }
+        }
+    }, [searchParams]);
+
+    const handleLogin = () => {
+        // Clear any existing error messages
+        setErrorMessage(null);
+        setErrorDetails(null);
+        loginWithGoogle();
+    };
 
     return (
         <div className="auth-container">
@@ -21,10 +57,22 @@ const Auth = () => {
                     <p className="auth-subtitle-large">Sign in with your Google account to continue</p>
                 </div>
 
+                {errorMessage && (
+                    <div className="auth-error-banner">
+                        <div className="auth-error-icon">⚠️</div>
+                        <div className="auth-error-content">
+                            <p className="auth-error-message">{errorMessage}</p>
+                            {errorDetails && (
+                                <p className="auth-error-details">Details: {errorDetails}</p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <button
                     type="button"
                     className="google-button-large"
-                    onClick={loginWithGoogle}
+                    onClick={handleLogin}
                 >
                     <svg viewBox="0 0 24 24" width="24" height="24">
                         <path

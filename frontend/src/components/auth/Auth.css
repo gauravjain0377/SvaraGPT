@@ -36,6 +36,54 @@
     50% { opacity: 1; transform: scale(1.1); }
 }
 
+/* Error Banner */
+.auth-error-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-error-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.auth-error-content {
+    flex: 1;
+}
+
+.auth-error-message {
+    color: var(--text-primary);
+    font-weight: 500;
+    margin: 0 0 4px 0;
+    font-size: 14px;
+}
+
+.auth-error-details {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    word-break: break-word;
+}
+
 /* OAuth Callback Status */
 .oauth-callback-status {
     text-align: center;
