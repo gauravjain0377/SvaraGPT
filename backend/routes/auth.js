@@ -27,6 +27,8 @@ const COOKIE_OPTIONS = {
     path: "/", // Ensure cookies are available across all paths
 };
 
+console.log('🍪 [COOKIE_OPTIONS] Initialized with:', COOKIE_OPTIONS);
+
 // Debug endpoint to check OAuth configuration
 router.get("/debug/oauth-config", (req, res) => {
     res.json({
@@ -37,8 +39,13 @@ router.get("/debug/oauth-config", (req, res) => {
 });
 
 function setAuthCookies(res, { accessToken, refreshToken }) {
+    console.log('🍪 [COOKIES] Setting auth cookies');
     const accessMaxAge = parseInt(process.env.JWT_ACCESS_MAXAGE || "900", 10) * 1000;
     const refreshMaxAge = parseInt(process.env.JWT_REFRESH_MAXAGE || "604800", 10) * 1000;
+
+    console.log('🍪 [COOKIES] Access token maxAge:', accessMaxAge);
+    console.log('🍪 [COOKIES] Refresh token maxAge:', refreshMaxAge);
+    console.log('🍪 [COOKIES] Cookie options:', COOKIE_OPTIONS);
 
     res.cookie("svara_access", accessToken, {
         ...COOKIE_OPTIONS,
@@ -49,6 +56,7 @@ function setAuthCookies(res, { accessToken, refreshToken }) {
         ...COOKIE_OPTIONS,
         maxAge: refreshMaxAge,
     });
+    console.log('🍪 [COOKIES] Auth cookies set successfully');
 }
 
 function clearAuthCookies(res) {
@@ -774,14 +782,40 @@ router.post(
     }
 );
 
-router.get("/google", passport.authenticate("google", {
+router.get("/google", (req, res, next) => {
+    console.log('🔍 [GOOGLE AUTH] Starting Google OAuth flow');
+    console.log('🔍 [GOOGLE AUTH] GOOGLE_CALLBACK_URL from env:', process.env.GOOGLE_CALLBACK_URL);
+    console.log('🔍 [GOOGLE AUTH] FRONTEND_URL from env:', process.env.FRONTEND_URL);
+    console.log('🔍 [GOOGLE AUTH] Request origin:', req.get('Origin'));
+    next();
+}, passport.authenticate("google", {
     scope: ["profile", "email"],
     prompt: "select_account",
 }));
 
 router.get(
     "/google/callback",
-    passport.authenticate("google", { failureRedirect: `${process.env.FRONTEND_URL}/login?error=google` }),
+    (req, res, next) => {
+        console.log('🔄 [GOOGLE CALLBACK] Received callback request');
+        console.log('🔄 [GOOGLE CALLBACK] Query params:', req.query);
+        console.log('🔄 [GOOGLE CALLBACK] Headers:', req.headers);
+        console.log('🔄 [GOOGLE CALLBACK] Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+        next();
+    },
+    (req, res, next) => {
+        passport.authenticate("google", { failureRedirect: `${process.env.FRONTEND_URL}/login?error=google` })(req, res, (err) => {
+            if (err) {
+                console.error('❌ [GOOGLE CALLBACK] Passport authentication error:', err);
+                console.error('❌ [GOOGLE CALLBACK] Error details:', {
+                    message: err.message,
+                    stack: err.stack,
+                    name: err.name
+                });
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+            }
+            next();
+        });
+    },
     async (req, res) => {
         try {
             const user = req.user;
@@ -793,7 +827,9 @@ router.get(
             console.log("✅ [GOOGLE CALLBACK] User authenticated:", user.email);
             
             const tokens = await issueTokens(user, req);
+            console.log('✅ [GOOGLE CALLBACK] Tokens issued, setting cookies');
             setAuthCookies(res, tokens);
+            console.log('✅ [GOOGLE CALLBACK] Cookies set successfully');
             
             console.log("✅ [GOOGLE CALLBACK] Cookies set, redirecting to:", `${process.env.FRONTEND_URL}/chats`);
             res.redirect(`${process.env.FRONTEND_URL}/chats`);

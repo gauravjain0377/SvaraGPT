@@ -12,6 +12,13 @@ passport.use(
             proxy: true,
         },
         async (req, accessToken, refreshToken, profile, done) => {
+            console.log('🔑 [PASSPORT] Google OAuth strategy initiated');
+            console.log('🔑 [PASSPORT] Callback URL being used:', process.env.GOOGLE_CALLBACK_URL || "http://localhost:8080/auth/google/callback");
+            console.log('🔑 [PASSPORT] Request details:', { 
+                url: req.url, 
+                query: req.query, 
+                headers: req.headers 
+            });
             try {
                 // Check if profile and emails exist
                 if (!profile || !profile.emails || !profile.emails.length) {
