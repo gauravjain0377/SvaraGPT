@@ -1185,10 +1185,13 @@ function ChatWindow() {
             <div className="inputSection">
                 <div className="inputContainer">
                     <div className="inputWrapper">
+                        {!(prompt && prompt.trim()) && !(isGenerating || isTyping) && (
+                            <div className="inputPlaceholder">How can I help you today?</div>
+                        )}
                         <textarea 
                             ref={textareaRef}
                             className="chatInput"
-                            placeholder="How can I help you today?"
+                            placeholder=""
                             value={prompt}
                             onChange={(e) => {
                                 setPrompt(e.target.value);
