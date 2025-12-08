@@ -232,14 +232,22 @@ export const AuthProvider = ({ children }) => {
 
     const loginWithGoogle = () => {
         const googleAuthUrl = apiUrl("/auth/google");
-        // Create a form and submit it to avoid potential browser security restrictions
-        const form = document.createElement('form');
-        form.method = 'GET';
-        form.action = googleAuthUrl;
-        form.style.display = 'none';
         
-        document.body.appendChild(form);
-        form.submit();
+        // Add error handling for CSP violations
+        try {
+            // Create a form and submit it to avoid potential browser security restrictions
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = googleAuthUrl;
+            form.style.display = 'none';
+            
+            document.body.appendChild(form);
+            form.submit();
+        } catch (error) {
+            console.error('❌ Error initiating Google OAuth:', error);
+            // Fallback to direct navigation
+            window.location.href = googleAuthUrl;
+        }
     };
 
     const value = {

@@ -21,9 +21,9 @@ const router = express.Router();
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: true, // Always use secure for cross-domain
-    sameSite: "none", // Required for cross-site cookies between Vercel and Render
-    domain: process.env.COOKIE_DOMAIN || undefined,
+    secure: process.env.NODE_ENV === 'production', // Only secure in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' in production for cross-domain
+    domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined, // Set domain for production cross-domain cookies
     path: "/", // Ensure cookies are available across all paths
 };
 
@@ -37,18 +37,26 @@ router.get("/debug/oauth-config", (req, res) => {
 });
 
 function setAuthCookies(res, { accessToken, refreshToken }) {
+    console.log('🍪 [COOKIES] Setting auth cookies with options:', COOKIE_OPTIONS);
+    
     const accessMaxAge = parseInt(process.env.JWT_ACCESS_MAXAGE || "900", 10) * 1000;
     const refreshMaxAge = parseInt(process.env.JWT_REFRESH_MAXAGE || "604800", 10) * 1000;
 
-    res.cookie("svara_access", accessToken, {
-        ...COOKIE_OPTIONS,
-        maxAge: accessMaxAge,
-    });
-
-    res.cookie("svara_refresh", refreshToken, {
-        ...COOKIE_OPTIONS,
-        maxAge: refreshMaxAge,
-    });
+    try {
+        res.cookie("svara_access", accessToken, {
+            ...COOKIE_OPTIONS,
+            maxAge: accessMaxAge,
+        });
+        
+        res.cookie("svara_refresh", refreshToken, {
+            ...COOKIE_OPTIONS,
+            maxAge: refreshMaxAge,
+        });
+        
+        console.log('✅ [COOKIES] Auth cookies set successfully');
+    } catch (error) {
+        console.error('❌ [COOKIES] Failed to set auth cookies:', error);
+    }
 }
 
 function clearAuthCookies(res) {
@@ -786,24 +794,42 @@ router.get("/google", (req, res, next) => {
 
 router.get(
     "/google/callback",
-    passport.authenticate("google", { failureRedirect: `${process.env.FRONTEND_URL}/login?error=google` }),
+    (req, res, next) => {
+        // Log the incoming request for debugging
+        console.log("🔄 [GOOGLE CALLBACK] Received request:", {
+            query: req.query,
+            headers: Object.keys(req.headers)
+        });
+        next();
+    },
+    (req, res, next) => {
+        passport.authenticate("google", { 
+            failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed` 
+        })(req, res, (err) => {
+            if (err) {
+                console.error("❌ [GOOGLE CALLBACK] Authentication error:", err);
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+            }
+            next();
+        });
+    },
     async (req, res) => {
         try {
-            const user = req.user;
-            if (!user) {
-                return res.redirect(`${process.env.FRONTEND_URL}/login?error=google`);
+            console.log("✅ [GOOGLE CALLBACK] Authentication successful, user:", req.user?.email);
+            
+            if (!req.user) {
+                console.error("❌ [GOOGLE CALLBACK] No user found after authentication");
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user`);
             }
             
-            console.log("✅ [GOOGLE CALLBACK] User authenticated:", user.email);
-            
-            const tokens = await issueTokens(user, req);
+            const tokens = await issueTokens(req.user, req);
             setAuthCookies(res, tokens);
             
-            console.log("✅ [GOOGLE CALLBACK] Cookies set, redirecting to:", `${process.env.FRONTEND_URL}/chats`);
+            console.log("✅ [GOOGLE CALLBACK] Redirecting to frontend:", `${process.env.FRONTEND_URL}/chats`);
             res.redirect(`${process.env.FRONTEND_URL}/chats`);
         } catch (error) {
-            console.error("❌ [GOOGLE CALLBACK] Error:", error);
-            res.redirect(`${process.env.FRONTEND_URL}/login?error=google`);
+            console.error("❌ [GOOGLE CALLBACK] Internal server error:", error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=internal_server_error`);
         }
     }
 );
