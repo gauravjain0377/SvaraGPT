@@ -41,5 +41,15 @@
 
 * {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+/* Global text overflow prevention */
+p, div, span, h1, h2, h3, h4, h5, h6, li, a, button, label, input, textarea {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  -webkit-hyphens: auto;
+  -ms-hyphens: auto;
+  hyphens: auto;
 }
 

@@ -55,6 +55,13 @@ body {
     
     .mainContent {
         padding: 0 16px !important;
+        max-width: 100% !important;
+    }
+    
+    /* Ensure text wraps properly when sidebar is collapsed */
+    * {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 }
 

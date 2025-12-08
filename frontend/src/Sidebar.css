@@ -224,13 +224,15 @@
 }
 
 .threadTitle {
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     color: var(--text-primary);
     display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .threadActions {
@@ -445,9 +447,11 @@
 }
 
 .projectName {
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     color: var(--text-primary);
     font-weight: 500;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .chatCount {

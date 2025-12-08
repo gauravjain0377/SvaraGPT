@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import {v1 as uuidv1} from "uuid";
 import { useAuth } from "./context/AuthContext.jsx";
+import { apiUrl } from "./utils/apiConfig.js";
 
 // Helper function to determine active section from path
 function getActiveSectionFromPath(path) {
@@ -71,23 +72,53 @@ function App() {
     setActiveSection(getActiveSectionFromPath(location.pathname));
     setActiveSettingsTab(getActiveSettingsTab(location.pathname));
     
-    // Handle chat ID from URL
-    if (params.chatId && params.chatId !== currThreadId) {
-      setCurrThreadId(params.chatId);
-      setNewChat(false);
-    }
-    
     // Handle project ID from URL
     if (params.projectId) {
       setSelectedProject(params.projectId);
-      
-      // If we have both project ID and chat ID in the URL
-      if (params.chatId) {
-        setCurrThreadId(params.chatId);
-        setNewChat(false);
-      }
     }
+    
+    // Note: chatId is handled by the fetchChatHistory useEffect below
   }, [location.pathname, params.chatId, params.projectId]);
+
+  // Fetch chat history when chat ID exists in URL on mount/reload
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      // Fetch if we have a chatId from URL, user is authenticated, and thread ID changed
+      if (params.chatId && user && isInitialized && params.chatId !== currThreadId) {
+        console.log('Loading chat history for:', params.chatId);
+        try {
+          const response = await fetch(
+            apiUrl(`/api/thread/${params.chatId}`),
+            { credentials: "include" }
+          );
+          
+          if (response.ok) {
+            const chatHistory = await response.json();
+            console.log('Chat history loaded:', chatHistory.length, 'messages');
+            setPrevChats(chatHistory);
+            setNewChat(false);
+            setCurrThreadId(params.chatId);
+          } else {
+            console.error('Failed to load chat history:', response.status);
+            // If chat not found, redirect to new chat
+            if (response.status === 404) {
+              console.log('Chat not found, starting new chat');
+              setNewChat(true);
+              setPrevChats([]);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching chat history:', err);
+        }
+      } else if (!params.chatId && prevChats.length > 0) {
+        // If no chatId in URL but we have chats, clear them (new chat)
+        setPrevChats([]);
+        setNewChat(true);
+      }
+    };
+
+    fetchChatHistory();
+  }, [params.chatId, user, isInitialized]);
 
   // Auto-collapse sidebar on small screens to avoid overlap
   useEffect(() => {

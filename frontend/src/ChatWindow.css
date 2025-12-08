@@ -14,6 +14,18 @@
         width: 100%;
         margin-left: 0;
     }
+    
+    /* Ensure text wraps properly on medium screens */
+    .mainContent {
+        max-width: 100%;
+        padding: 0 16px;
+    }
+    
+    /* Better text handling for medium screens */
+    * {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
 }
 
 /* Header */
@@ -123,7 +135,9 @@
     cursor: pointer;
     transition: background-color 0.2s;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .mobile-menu-item:hover {
@@ -173,9 +187,12 @@
 }
 
 .brandName {
-    font-size: 18px;
+    font-size: clamp(14px, 1.5vw, 18px);
     font-weight: 600;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .modelSelector {
@@ -194,8 +211,11 @@
 }
 
 .modelName {
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .headerActions {
@@ -261,6 +281,8 @@
     overflow-x: hidden;
     scroll-behavior: smooth;
     position: relative;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .mainContent::after {
@@ -431,9 +453,12 @@
 
 .disclaimer {
     text-align: center;
-    font-size: 12px;
+    font-size: clamp(10px, 1vw, 12px);
     color: var(--text-tertiary);
     margin-top: 12px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding: 0 8px;
 }
 
 
@@ -471,7 +496,10 @@
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.2s;
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .dropdownItem:hover {
@@ -627,19 +655,24 @@
 
 /* Title */
 .limit-modal-title {
-    font-size: 24px;
+    font-size: clamp(20px, 2vw, 24px);
     font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 12px 0;
     line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Description */
 .limit-modal-description {
-    font-size: 15px;
+    font-size: clamp(13px, 1.3vw, 15px);
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 0 0 32px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 /* Buttons Container */
@@ -819,17 +852,22 @@
 }
 
 .settings-section-title {
-    font-size: 18px;
+    font-size: clamp(16px, 1.6vw, 18px);
     font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 20px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .settings-section-description {
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     color: var(--text-tertiary);
     margin-bottom: 24px;
     line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .settings-item {
@@ -842,16 +880,21 @@
 }
 
 .settings-item-label {
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     font-weight: 500;
     color: var(--text-primary);
     margin-bottom: 4px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .settings-item-description {
-    font-size: 13px;
+    font-size: clamp(11px, 1.1vw, 13px);
     color: var(--text-tertiary);
     line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .faq-item {
@@ -872,12 +915,15 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     font-weight: 600;
     color: var(--text-primary);
     cursor: pointer;
     user-select: none;
     transition: background 0.2s ease;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    gap: 12px;
 }
 
 .faq-question:hover {
@@ -888,6 +934,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    flex: 1;
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .faq-toggle-icon {
@@ -898,10 +948,13 @@
 
 .faq-answer {
     padding: 0 16px 16px 16px;
-    font-size: 13px;
+    font-size: clamp(11px, 1.1vw, 13px);
     color: var(--text-secondary);
     line-height: 1.6;
     animation: slideDown 0.3s ease-out;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 /* ============================================
@@ -1089,9 +1142,11 @@
 .export-modal-description {
     padding: 16px 24px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: clamp(12px, 1.2vw, 14px);
     margin: 0;
     line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .export-format-options {
@@ -1142,16 +1197,20 @@
 
 .export-format-info h3 {
     margin: 0 0 4px 0;
-    font-size: 16px;
+    font-size: clamp(14px, 1.4vw, 16px);
     font-weight: 600;
     color: #ececec;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .export-format-info p {
     margin: 0;
-    font-size: 13px;
+    font-size: clamp(11px, 1.1vw, 13px);
     color: #888;
     line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ============================================

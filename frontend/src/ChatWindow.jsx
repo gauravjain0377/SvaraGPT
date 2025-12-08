@@ -7,7 +7,7 @@ import { useTheme } from "./context/ThemeContext.jsx";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import {ScaleLoader} from "react-spinners";
-import logo3 from "./assets/logo3.png";
+import logo from "./assets/logo.png";
 import { apiUrl } from "./utils/apiConfig";
 
 function ChatWindow() {
@@ -1077,7 +1077,7 @@ function ChatWindow() {
                         >
                             <i className="fa-solid fa-bars"></i>
                         </button>
-                        <img src={logo3} alt="SvaraGPT Logo" className="brandIcon" />
+                        <img src={logo} alt="SvaraGPT Logo" className="brandIcon" />
                         <span className="brandName">SvaraGPT</span>
                     </div>
                     <div className="headerActions">

@@ -1,19 +1,23 @@
-import nodemailer from "nodemailer";
+import { Resend } from 'resend';
 
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.EMAIL_PORT) || 465,
-    secure: process.env.EMAIL_SECURE === 'true' || true,
-    auth: {
-        user: process.env.EMAIL_USER || process.env.MAIL_USER || "gjain0229@gmail.com",
-        pass: process.env.EMAIL_PASS || process.env.MAIL_PASS,
-    },
-});
+// Initialize Resend with API key from environment variables
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const DEFAULT_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'SvaraGPT <onboarding@resend.dev>';
+
+// Check if API key is configured
+if (!RESEND_API_KEY) {
+    console.error('⚠️  WARNING: RESEND_API_KEY is not set in environment variables!');
+    console.error('Please add RESEND_API_KEY to your .env file');
+} else {
+    console.log('✅ Resend API key is configured');
+    console.log('📧 Default sender email:', DEFAULT_FROM_EMAIL);
+}
+
+const resend = new Resend(RESEND_API_KEY);
 
 export async function sendVerificationEmail(email, name, code) {
-    const senderEmail = process.env.EMAIL_USER || process.env.MAIL_USER || "gjain0229@gmail.com";
     const mailOptions = {
-        from: `"SvaraGPT" <${senderEmail}>`,
+        from: DEFAULT_FROM_EMAIL,
         to: email,
         subject: "Verify Your Email - SvaraGPT",
         html: `
@@ -51,7 +55,14 @@ export async function sendVerificationEmail(email, name, code) {
     };
 
     try {
-        await transporter.sendMail(mailOptions);
+        const { data, error } = await resend.emails.send(mailOptions);
+        
+        if (error) {
+            console.error("Error sending verification email:", error);
+            return false;
+        }
+        
+        console.log("Verification email sent successfully:", data);
         return true;
     } catch (error) {
         console.error("Error sending verification email:", error);
@@ -60,10 +71,20 @@ export async function sendVerificationEmail(email, name, code) {
 }
 
 export async function sendContactEmail(name, email, category, message) {
-    const senderEmail = process.env.EMAIL_USER || process.env.MAIL_USER || "gjain0229@gmail.com";
+    console.log('📧 Attempting to send contact email...');
+    console.log('From:', email, '| Name:', name, '| Category:', category);
+    
+    if (!RESEND_API_KEY) {
+        console.error('❌ Cannot send email: RESEND_API_KEY is not configured');
+        return false;
+    }
+    
+    const recipientEmail = process.env.RESEND_RECIPIENT_EMAIL || process.env.EMAIL_USER || "gjain0229@gmail.com";
+    console.log('Recipient:', recipientEmail);
+    
     const mailOptions = {
-        from: `"SvaraGPT Contact Form" <${senderEmail}>`,
-        to: senderEmail,
+        from: DEFAULT_FROM_EMAIL,
+        to: recipientEmail,
         replyTo: email,
         subject: `[SvaraGPT Contact] ${category} - ${name}`,
         html: `
@@ -118,18 +139,28 @@ export async function sendContactEmail(name, email, category, message) {
     };
 
     try {
-        await transporter.sendMail(mailOptions);
+        const { data, error } = await resend.emails.send(mailOptions);
+        
+        if (error) {
+            console.error("❌ Resend API Error:", error);
+            console.error("Error details:", JSON.stringify(error, null, 2));
+            return false;
+        }
+        
+        console.log("✅ Contact email sent successfully!");
+        console.log("Email ID:", data?.id);
         return true;
     } catch (error) {
-        console.error("Error sending contact email:", error);
+        console.error("❌ Exception sending contact email:", error);
+        console.error("Error message:", error.message);
+        console.error("Stack trace:", error.stack);
         return false;
     }
 }
 
 export async function sendPasswordResetEmail(email, name, code) {
-    const senderEmail = process.env.EMAIL_USER || process.env.MAIL_USER || "gjain0229@gmail.com";
     const mailOptions = {
-        from: `"SvaraGPT" <${senderEmail}>`,
+        from: DEFAULT_FROM_EMAIL,
         to: email,
         subject: "Reset Your Password - SvaraGPT",
         html: `
@@ -170,7 +201,14 @@ export async function sendPasswordResetEmail(email, name, code) {
     };
 
     try {
-        await transporter.sendMail(mailOptions);
+        const { data, error } = await resend.emails.send(mailOptions);
+        
+        if (error) {
+            console.error("Error sending password reset email:", error);
+            return false;
+        }
+        
+        console.log("Password reset email sent successfully:", data);
         return true;
     } catch (error) {
         console.error("Error sending password reset email:", error);

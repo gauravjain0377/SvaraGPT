@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { apiUrl } from "../../utils/apiConfig";
 import "./Auth.css";
-import logo3 from "../../assets/logo3.png";
+import logo from "../../assets/logo.png";
 import TwoFactorVerify from "./TwoFactorVerify";
 
 const Login = () => {
@@ -149,7 +149,7 @@ const Login = () => {
                     <>
                         <div className="auth-header">
                             <div className="auth-logo">
-                                <img src={logo3} alt="SvaraGPT Logo" />
+                                <img src={logo} alt="SvaraGPT Logo" />
                             </div>
                             <h1>Welcome Back</h1>
                             <p>Sign in to continue to SvaraGPT</p>
