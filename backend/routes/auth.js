@@ -27,6 +27,15 @@ const COOKIE_OPTIONS = {
     path: "/", // Ensure cookies are available across all paths
 };
 
+// Debug endpoint to check OAuth configuration
+router.get("/debug/oauth-config", (req, res) => {
+    res.json({
+        GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || "NOT SET",
+        FRONTEND_URL: process.env.FRONTEND_URL || "NOT SET",
+        NODE_ENV: process.env.NODE_ENV || "NOT SET"
+    });
+});
+
 function setAuthCookies(res, { accessToken, refreshToken }) {
     const accessMaxAge = parseInt(process.env.JWT_ACCESS_MAXAGE || "900", 10) * 1000;
     const refreshMaxAge = parseInt(process.env.JWT_REFRESH_MAXAGE || "604800", 10) * 1000;
