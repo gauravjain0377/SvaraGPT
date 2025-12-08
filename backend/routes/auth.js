@@ -188,7 +188,11 @@ router.post(
             if (user.isVerified) {
                 const tokens = await issueTokens(user, req);
                 setAuthCookies(res, tokens);
-                return res.status(200).json({ message: "Already verified.", user: user.profile() });
+                return res.status(200).json({
+                    message: "Already verified.",
+                    user: user.profile(),
+                    accessToken: tokens.accessToken,
+                });
             }
             
             if (
@@ -208,7 +212,11 @@ router.post(
             const tokens = await issueTokens(user, req);
             setAuthCookies(res, tokens);
 
-            res.status(200).json({ message: "Email verified.", user: user.profile() });
+            res.status(200).json({
+                message: "Email verified.",
+                user: user.profile(),
+                accessToken: tokens.accessToken,
+            });
         } catch (error) {
             console.error("❌ [VERIFY] Error:", error);
             res.status(500).json({ error: "Failed to verify email.", details: error.message });
@@ -292,7 +300,11 @@ router.post(
 
             const tokens = await issueTokens(user, req);
             setAuthCookies(res, tokens);
-            res.status(200).json({ message: "Login successful.", user: user.profile() });
+            res.status(200).json({
+                message: "Login successful.",
+                user: user.profile(),
+                accessToken: tokens.accessToken,
+            });
         } catch (error) {
             console.error("❌ [LOGIN] Error:", error);
             res.status(500).json({ error: "Failed to login.", details: error.message });
@@ -331,7 +343,11 @@ router.post("/refresh", async (req, res) => {
 
         const tokens = await issueTokens(user, req);
         setAuthCookies(res, tokens);
-        res.status(200).json({ message: "Tokens refreshed.", user: user.profile() });
+        res.status(200).json({
+            message: "Tokens refreshed.",
+            user: user.profile(),
+            accessToken: tokens.accessToken,
+        });
     } catch (error) {
         console.error("❌ [REFRESH] Error:", error);
         clearAuthCookies(res);
@@ -1033,6 +1049,7 @@ router.post("/verify-oauth", async (req, res) => {
             user: user.profile(),
             cookiesSet: true,
             reissued: true,
+            accessToken: tokens.accessToken,
             message: "OAuth verification complete, cookies set"
         });
     } catch (error) {

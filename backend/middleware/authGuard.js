@@ -3,14 +3,24 @@ import User from "../models/User.js";
 
 export async function authGuard(req, res, next) {
     console.log('[AUTH GUARD] Checking authentication', {
-        hasToken: !!req.cookies.svara_access,
+        hasTokenCookie: !!req.cookies.svara_access,
+        hasAuthHeader: !!req.headers.authorization,
         cookieNames: Object.keys(req.cookies || {}),
         rawCookieHeader: req.headers.cookie || "<none>",
         origin: req.headers.origin,
-        userAgent: req.headers["user-agent"]
+        userAgent: req.headers["user-agent"],
+        authHeaderPrefix: req.headers.authorization ? req.headers.authorization.split(" ")[0] : "<none>",
     });
     
-    const token = req.cookies.svara_access;
+    let token = req.cookies.svara_access;
+
+    // Fallback to Authorization header (Bearer token) when cookies are blocked in the browser
+    if (!token && req.headers.authorization) {
+        const [scheme, credentials] = req.headers.authorization.split(" ");
+        if (scheme === "Bearer" && credentials) {
+            token = credentials;
+        }
+    }
 
     if (!token) {
         console.warn("[AUTH GUARD] Missing access token cookie", {

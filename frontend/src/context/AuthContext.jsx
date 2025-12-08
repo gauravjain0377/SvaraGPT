@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
     const location = useLocation();
 
     const AUTH_USER_KEY = "authUser";
+    const AUTH_TOKEN_KEY = "authToken";
 
     const loadStoredUser = () => {
         try {
@@ -28,6 +29,14 @@ export const AuthProvider = ({ children }) => {
             return JSON.parse(stored);
         } catch (e) {
             console.error("❌ [AUTH CONTEXT] Failed to load stored user:", e);
+            return null;
+        }
+    };
+
+    const loadStoredToken = () => {
+        try {
+            return localStorage.getItem(AUTH_TOKEN_KEY) || null;
+        } catch {
             return null;
         }
     };
@@ -42,6 +51,26 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.error("❌ [AUTH CONTEXT] Failed to persist user:", e);
         }
+    };
+
+    const persistToken = (token) => {
+        try {
+            if (token) {
+                localStorage.setItem(AUTH_TOKEN_KEY, token);
+            } else {
+                localStorage.removeItem(AUTH_TOKEN_KEY);
+            }
+        } catch (e) {
+            console.error("❌ [AUTH CONTEXT] Failed to persist token:", e);
+        }
+    };
+
+    const getAuthHeaders = () => {
+        const token = loadStoredToken();
+        if (!token) return {};
+        return {
+            Authorization: `Bearer ${token}`,
+        };
     };
 
     const checkAuth = async () => {
@@ -69,17 +98,22 @@ export const AuthProvider = ({ children }) => {
                                     cache: "no-cache",
                                     headers: {
                                         'Accept': 'application/json',
-                                        'Content-Type': 'application/json'
-                                    }
+                                        'Content-Type': 'application/json',
+                                        ...getAuthHeaders(),
+                                    },
                                 });
                                 
                                 if (response.ok) {
                                     const data = await response.json();
                                     if (data.user) {
-                                        console.log("✅ [AUTH CONTEXT] Cookies verified successfully on attempt", i + 1);
+                                        console.log("✅ [AUTH CONTEXT] Cookies/tokens verified successfully on attempt", i + 1);
                                         setUser(data.user); // Update with fresh data
                                         persistUser(data.user);
+                                        if (data.accessToken) {
+                                            persistToken(data.accessToken);
+                                        }
                                         return;
+                                    }
                                 } else {
                                     console.warn(`⚠️ [AUTH CONTEXT] Verification attempt ${i + 1} failed with status:`, response.status);
                                 }
@@ -115,7 +149,8 @@ export const AuthProvider = ({ children }) => {
                 cache: "no-cache",
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
                 }
             });
 
@@ -125,6 +160,9 @@ export const AuthProvider = ({ children }) => {
                     console.log("✅ [AUTH CONTEXT] User authenticated via cookies:", data.user.email);
                     setUser(data.user);
                     persistUser(data.user);
+                    if (data.accessToken) {
+                        persistToken(data.accessToken);
+                    }
                 } else {
                     console.warn("⚠️ [AUTH CONTEXT] No valid user data in response");
                     persistUser(null);
@@ -252,6 +290,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('currentThread');
         
         setUser(data.user);
+        persistUser(data.user);
+        if (data.accessToken) {
+            persistToken(data.accessToken);
+        }
         return data;
     };
 
@@ -301,6 +343,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('currentThread');
         
         setUser(data.user);
+        persistUser(data.user);
+        if (data.accessToken) {
+            persistToken(data.accessToken);
+        }
         return data;
     };
 
@@ -335,6 +381,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('currentProject');
             localStorage.removeItem('currentThread');
             localStorage.removeItem(AUTH_USER_KEY);
+            localStorage.removeItem(AUTH_TOKEN_KEY);
             
             setUser(null);
             // Redirect to home page (guest mode) instead of login

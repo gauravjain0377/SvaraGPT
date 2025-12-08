@@ -12,7 +12,15 @@ import { v4 as uuidv4 } from "uuid";
  * - Guests have a limit of 3 prompts total
  */
 export async function guestOrAuthGuard(req, res, next) {
-    const token = req.cookies.svara_access;
+    let token = req.cookies.svara_access;
+
+    // Also support Authorization header (Bearer token) for environments where cookies are blocked
+    if (!token && req.headers.authorization) {
+        const [scheme, credentials] = req.headers.authorization.split(" ");
+        if (scheme === "Bearer" && credentials) {
+            token = credentials;
+        }
+    }
 
     // Try to authenticate with token
     if (token) {

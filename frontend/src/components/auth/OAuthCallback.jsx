@@ -55,6 +55,12 @@ const OAuthCallback = () => {
                 // Store user in localStorage as a fallback (critical for production)
                 localStorage.setItem('oauthUser', JSON.stringify(data.user));
                 console.log("💾 Stored user in localStorage");
+
+                // Also store access token so frontend can authenticate via Authorization header
+                if (data.accessToken) {
+                    localStorage.setItem('authToken', data.accessToken);
+                    console.log("🔑 Stored access token in localStorage");
+                }
                 console.log("🍪 Cookies set:", data.cookiesSet);
                 console.log("🔄 Reissued:", data.reissued);
                 
