@@ -60,7 +60,7 @@ Key goals:
 ## Screenshots
 - ![Home — Dark](frontend/src/assets/Home-Dark.png)
 - ![Home — Light](frontend/src/assets/Home-Light.png)
-- ![Chat Window](frontend/src/assets/chats.png)
+- ![Chat Window](frontend/src/assets/Chats.png)
 ---
 
 ## Folder Structure
@@ -187,23 +187,23 @@ Guest usage limits and guards are applied via middleware (backend/middleware/gue
 ---
 
 ## Contact
-- Developed by: Gaurav Jain
-- Email: jaingaurav906@gmail.com
-- LinkedIn: linkedin.com/in/this-is-gaurav-jain/
-- GitHub: github.com/gauravjain0377
-- 𝕏: x.com/gauravjain0377
+**Developed by:** Gaurav Jain  
+**Email:** [jaingaurav906@gmail.com](mailto:jaingaurav906@gmail.com)  
+**LinkedIn:** [linkedin.com/in/this-is-gaurav-jain/](https://www.linkedin.com/in/this-is-gaurav-jain/)  
+**GitHub:** [github.com/gauravjain0377](https://github.com/gauravjain0377)  
+**𝕏:** [x.com/gauravjain0377](https://x.com/gauravjain0377)
 
 ---
 
 ## Future Enhancements
-- [ ] Streaming responses with token-by-token updates
-- [ ] Multi-model routing (Gemini, OpenAI, local LLMs)
-- [ ] Attachments: images/files for multimodal prompts
-- [ ] Role-based access with admin dashboard
-- [ ] Analytics: usage charts, feedback insights
-- [ ] PWA + offline caching for recent threads
-- [ ] Internationalization (i18n)
-- [ ] E2E tests and CI pipeline
+- Streaming responses with token-by-token updates
+- Multi-model routing (Gemini, OpenAI, local LLMs)
+- Attachments: images/files for multimodal prompts
+- Role-based access with admin dashboard
+- Analytics: usage charts, feedback insights
+- PWA + offline caching for recent threads
+- Internationalization (i18n)
+- E2E tests and CI pipeline
 
 ---
 

@@ -36,6 +36,7 @@ function App() {
   const [allThreads, setAllThreads] = useState([]);
   const [activeSection, setActiveSection] = useState(getActiveSectionFromPath(location.pathname));
   const [activeSettingsTab, setActiveSettingsTab] = useState(getActiveSettingsTab(location.pathname));
+  const [loadedChatId, setLoadedChatId] = useState(null); // Track which chat has been loaded
 
   // Project Management State - Initialize empty, will be loaded by Sidebar
   const [projects, setProjects] = useState([]);
@@ -62,6 +63,8 @@ function App() {
       setAllThreads([]);
       setCurrentProject(null);
       setSelectedProject(null);
+      setPrevChats([]);
+      setLoadedChatId(null);
       // Clear localStorage
       localStorage.removeItem('projects');
     }
@@ -83,8 +86,8 @@ function App() {
   // Fetch chat history when chat ID exists in URL on mount/reload
   useEffect(() => {
     const fetchChatHistory = async () => {
-      // Fetch if we have a chatId from URL, user is authenticated, and thread ID changed
-      if (params.chatId && user && isInitialized && params.chatId !== currThreadId) {
+      // Fetch if we have a chatId from URL, user is authenticated, and we haven't loaded this chat yet
+      if (params.chatId && user && isInitialized && params.chatId !== loadedChatId) {
         console.log('Loading chat history for:', params.chatId);
         try {
           const response = await fetch(
@@ -98,6 +101,7 @@ function App() {
             setPrevChats(chatHistory);
             setNewChat(false);
             setCurrThreadId(params.chatId);
+            setLoadedChatId(params.chatId); // Mark this chat as loaded
           } else {
             console.error('Failed to load chat history:', response.status);
             // If chat not found, redirect to new chat
@@ -105,20 +109,28 @@ function App() {
               console.log('Chat not found, starting new chat');
               setNewChat(true);
               setPrevChats([]);
+              setLoadedChatId(null);
             }
           }
         } catch (err) {
           console.error('Error fetching chat history:', err);
         }
-      } else if (!params.chatId && prevChats.length > 0) {
-        // If no chatId in URL but we have chats, clear them (new chat)
-        setPrevChats([]);
-        setNewChat(true);
+      } else if (!params.chatId) {
+        // If no chatId in URL, clear chats and reset (new chat)
+        if (prevChats.length > 0 || loadedChatId !== null) {
+          console.log('Starting new chat');
+          setPrevChats([]);
+          setNewChat(true);
+          setLoadedChatId(null);
+          // Generate new thread ID only when explicitly starting new chat
+          const newThreadId = uuidv1();
+          setCurrThreadId(newThreadId);
+        }
       }
     };
 
     fetchChatHistory();
-  }, [params.chatId, user, isInitialized]);
+  }, [params.chatId, user, isInitialized, loadedChatId]);
 
   // Auto-collapse sidebar on small screens to avoid overlap
   useEffect(() => {
