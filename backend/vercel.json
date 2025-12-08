@@ -4,10 +4,7 @@
     "builds": [
         {
             "src": "server.js",
-            "use": "@vercel/node",
-            "config": {
-                "maxDuration": 30
-            }
+            "use": "@vercel/node"
         }
     ],
     "routes": [
@@ -19,11 +16,5 @@
     ],
     "env": {
         "NODE_ENV": "production"
-    },
-    "functions": {
-        "server.js": {
-            "maxDuration": 30,
-            "memory": 1024
-        }
     }
 }
