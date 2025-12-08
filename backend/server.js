@@ -99,7 +99,7 @@ app.use(session({
         secure: process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production', // Use secure in production
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' in production for cross-domain
         httpOnly: true,
-        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined, // Set domain for production cross-domain cookies
+        domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Don't set domain in production for cross-subdomain
         maxAge: 24 * 60 * 60 * 1000,
         path: '/'
     },

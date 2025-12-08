@@ -2,6 +2,14 @@ import { verifyToken } from "../utils/tokens.js";
 import User from "../models/User.js";
 
 export async function authGuard(req, res, next) {
+    console.log('[AUTH GUARD] Checking authentication', {
+        hasToken: !!req.cookies.svara_access,
+        cookieNames: Object.keys(req.cookies || {}),
+        rawCookieHeader: req.headers.cookie || "<none>",
+        origin: req.headers.origin,
+        userAgent: req.headers["user-agent"]
+    });
+    
     const token = req.cookies.svara_access;
 
     if (!token) {

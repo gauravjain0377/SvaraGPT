@@ -23,7 +23,7 @@ const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Only secure in production
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' in production for cross-domain
-    domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined, // Set domain for production cross-domain cookies
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Don't set domain in production for cross-subdomain
     path: "/", // Ensure cookies are available across all paths
 };
 
@@ -43,11 +43,13 @@ function setAuthCookies(res, { accessToken, refreshToken }) {
     const refreshMaxAge = parseInt(process.env.JWT_REFRESH_MAXAGE || "604800", 10) * 1000;
 
     try {
+        console.log('🍪 [COOKIES] Setting svara_access cookie');
         res.cookie("svara_access", accessToken, {
             ...COOKIE_OPTIONS,
             maxAge: accessMaxAge,
         });
         
+        console.log('🍪 [COOKIES] Setting svara_refresh cookie');
         res.cookie("svara_refresh", refreshToken, {
             ...COOKIE_OPTIONS,
             maxAge: refreshMaxAge,
@@ -825,8 +827,11 @@ router.get(
             const tokens = await issueTokens(req.user, req);
             setAuthCookies(res, tokens);
             
-            console.log("✅ [GOOGLE CALLBACK] Redirecting to frontend:", `${process.env.FRONTEND_URL}/chats`);
-            res.redirect(`${process.env.FRONTEND_URL}/chats`);
+            // Add a small delay to ensure cookies are set before redirecting
+            setTimeout(() => {
+                console.log("✅ [GOOGLE CALLBACK] Redirecting to frontend:", `${process.env.FRONTEND_URL}/chats`);
+                res.redirect(`${process.env.FRONTEND_URL}/chats`);
+            }, 100);
         } catch (error) {
             console.error("❌ [GOOGLE CALLBACK] Internal server error:", error);
             res.redirect(`${process.env.FRONTEND_URL}/login?error=internal_server_error`);
