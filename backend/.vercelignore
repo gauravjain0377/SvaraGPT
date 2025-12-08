@@ -1,0 +1,17 @@
+node_modules
+.env
+.env.local
+.env.production
+*.log
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+test/
+tests/
+*.test.js
+*.spec.js
+coverage/
+.nyc_output/
+FREE-AI-APIS.md

@@ -1,5 +1,17 @@
 {
+  "name": "svaragpt-backend",
+  "version": "1.0.0",
+  "description": "SvaraGPT Backend API with Google OAuth",
   "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "vercel-build": "echo 'No build needed'"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "@google/genai": "^1.22.0",
     "axios": "^1.12.2",
@@ -23,5 +35,8 @@
     "speakeasy": "^2.0.0",
     "ua-parser-js": "^2.0.6",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
   }
 }

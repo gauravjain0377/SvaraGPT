@@ -4,18 +4,24 @@ import { Resend } from 'resend';
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const DEFAULT_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'SvaraGPT <onboarding@resend.dev>';
 
+let resend = null;
+
 // Check if API key is configured
 if (!RESEND_API_KEY) {
-    console.error('⚠️  WARNING: RESEND_API_KEY is not set in environment variables!');
-    console.error('Please add RESEND_API_KEY to your .env file');
+    console.warn('⚠️  WARNING: RESEND_API_KEY is not set in environment variables!');
+    console.warn('📧 Email functionality disabled - Using Google OAuth only (no email verification needed)');
 } else {
+    resend = new Resend(RESEND_API_KEY);
     console.log('✅ Resend API key is configured');
     console.log('📧 Default sender email:', DEFAULT_FROM_EMAIL);
 }
 
-const resend = new Resend(RESEND_API_KEY);
-
 export async function sendVerificationEmail(email, name, code) {
+    if (!resend) {
+        console.warn('⚠️  Email sending skipped: Resend not configured (Google OAuth only mode)');
+        return true; // Return true to not break the flow
+    }
+
     const mailOptions = {
         from: DEFAULT_FROM_EMAIL,
         to: email,
@@ -74,7 +80,7 @@ export async function sendContactEmail(name, email, category, message) {
     console.log('📧 Attempting to send contact email...');
     console.log('From:', email, '| Name:', name, '| Category:', category);
     
-    if (!RESEND_API_KEY) {
+    if (!resend) {
         console.error('❌ Cannot send email: RESEND_API_KEY is not configured');
         return false;
     }
@@ -159,6 +165,11 @@ export async function sendContactEmail(name, email, category, message) {
 }
 
 export async function sendPasswordResetEmail(email, name, code) {
+    if (!resend) {
+        console.warn('⚠️  Email sending skipped: Resend not configured (Google OAuth only mode)');
+        return true; // Return true to not break the flow
+    }
+
     const mailOptions = {
         from: DEFAULT_FROM_EMAIL,
         to: email,

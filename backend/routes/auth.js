@@ -777,12 +777,17 @@ router.get(
         try {
             const user = req.user;
             if (!user) {
+                console.error("❌ [GOOGLE CALLBACK] No user found in request");
                 return res.redirect(`${process.env.FRONTEND_URL}/login?error=google`);
             }
             
+            console.log("✅ [GOOGLE CALLBACK] User authenticated:", user.email);
+            
             const tokens = await issueTokens(user, req);
             setAuthCookies(res, tokens);
-            res.redirect(`${process.env.FRONTEND_URL}/home`);
+            
+            console.log("✅ [GOOGLE CALLBACK] Cookies set, redirecting to:", `${process.env.FRONTEND_URL}/chats`);
+            res.redirect(`${process.env.FRONTEND_URL}/chats`);
         } catch (error) {
             console.error("❌ [GOOGLE CALLBACK] Error:", error);
             res.redirect(`${process.env.FRONTEND_URL}/login?error=google`);

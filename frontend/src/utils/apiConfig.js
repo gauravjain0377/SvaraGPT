@@ -1,4 +1,4 @@
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.trim();
+const rawBaseUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim();
 const fallbackBaseUrl = "http://localhost:8080";
 
 const normalizedBaseUrl = (rawBaseUrl && rawBaseUrl.length > 0 ? rawBaseUrl : fallbackBaseUrl).replace(/\/+$/, "");
