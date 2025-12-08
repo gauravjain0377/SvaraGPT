@@ -20,6 +20,60 @@ if (!process.env.NODE_ENV) {
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// MongoDB Connection Management for Serverless
+let isConnected = false;
+
+const connectDB = async () => {
+    if (isConnected) {
+        console.log("📦 Using existing MongoDB connection");
+        return;
+    }
+
+    try {
+        console.log("🔄 Connecting to MongoDB...");
+        console.log("📍 MongoDB URL:", process.env.MONGODB_URL ? "SET" : "NOT SET");
+        
+        const options = {
+            dbName: process.env.MONGODB_DB_NAME || "SvaraGPT_Database",
+            serverSelectionTimeoutMS: 10000, // Timeout after 10s instead of 30s
+            socketTimeoutMS: 45000,
+            maxPoolSize: 10, // Maintain up to 10 socket connections
+            minPoolSize: 1,
+            maxIdleTimeMS: 10000,
+        };
+
+        await mongoose.connect(process.env.MONGODB_URL, options);
+        
+        isConnected = true;
+        console.log("✅ Connected to MongoDB successfully!");
+        console.log("📊 Database:", mongoose.connection.db.databaseName);
+    } catch (err) {
+        console.error("❌ MongoDB connection error:", err.message);
+        console.error("❌ Full error:", err);
+        isConnected = false;
+        throw err;
+    }
+};
+
+// Handle MongoDB connection events
+mongoose.connection.on('connected', () => {
+    console.log('✅ Mongoose connected to MongoDB');
+    isConnected = true;
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('❌ Mongoose connection error:', err);
+    isConnected = false;
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('⚠️  Mongoose disconnected from MongoDB');
+    isConnected = false;
+});
+
+// Connect to MongoDB immediately (critical for serverless)
+await connectDB();
+
 const normalizeOrigin = (value) => {
     if (!value || typeof value !== "string") return null;
     return value.replace(/\/$/, "");
@@ -123,21 +177,15 @@ app.use("/api", projectRoutes);
 app.use("/api/migrate", migrateRoutes);
 app.use("/api", contactRoutes);
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    connectDB();
-});
-
-const connectDB = async() => {
-    try {
-        await mongoose.connect(process.env.MONGODB_URL, {
-            dbName: process.env.MONGODB_DB_NAME || "SvaraGPT_Database"
-        });
-        console.log("Connected with Database!");
-    } catch(err) {
-        console.log("Failed to connect with Db", err);
-    }
+// For local development, start the server
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
 }
+
+// Export for Vercel serverless
+export default app;
 
 
 
