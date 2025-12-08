@@ -2,6 +2,11 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User from "../models/User.js";
 
+console.log('🔑 [PASSPORT] Initializing Google OAuth strategy');
+console.log('🔑 [PASSPORT] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '[SET]' : '[NOT SET]');
+console.log('🔑 [PASSPORT] GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '[SET]' : '[NOT SET]');
+console.log('🔑 [PASSPORT] GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL || "http://localhost:8080/auth/google/callback");
+
 passport.use(
     new GoogleStrategy(
         {
